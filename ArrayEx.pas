@@ -327,7 +327,7 @@ end;
 class function TArrayEx<T>.EqualArray(A, B: TArray<T>): Boolean;
 var
   i: Integer;
-  c:tarray<T>;
+//  c:tarray<T>;
 begin
   Result := True;
   if A = B then
@@ -338,8 +338,8 @@ begin
   end
   else
   begin
-    c:=a;
-    for i := Low(c) to High(c) do
+//    c:=a;
+    for i := Low(A) to High(A) do
       if not CompareT(A[i], B[i]) then
       begin
         Result := False;

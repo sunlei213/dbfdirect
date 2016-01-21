@@ -2,7 +2,7 @@ unit DBFdirect;
 
 interface
 uses
-  Windows, Messages, SysUtils, Variants, Classes,Generics.Collections,Otlcommon,arrayex,
+  Windows, Messages, SysUtils, Variants, Classes,Generics.Collections,arrayex,
   fmtbcd;
 
 type
@@ -58,11 +58,12 @@ type
       procedure writeHeader(recCount:integer);
       procedure writeFieldHeader(field:TDBField;loc:integer);
     public
-      constructor Create(DBfields:Tlist<TDBfield>;encode:TEncoding=TEncoding.Default);
+      constructor Create(DBfields:Tlist<TDBfield>);
       procedure initHead2Stream(recCount:integer);
       procedure addRecord(delflag:boolean;objs:tarrayex<variant>);
       procedure addRecord0(delflag:boolean;objs:tarrayex<variant>);
       procedure wirteStream2File(filename:string);
+      procedure SetEncode(encode:TEncoding);
   end;
 implementation
 
@@ -76,7 +77,7 @@ end;
 
 constructor TDBField.Create(na:string;ty:ansichar;le,deci:integer);
 begin
-  if (length(na)>10) then
+  if (system.Length(na)>10) then
   raise Exception.Create('The field name is more than 10 characters long:'+na );
 
   if (ty <> 'C') and (ty <> 'N') and (ty <> 'L') and (ty <> 'D') and (ty <> 'F') then
@@ -107,7 +108,7 @@ begin
   raise Exception.Create('The field decimal count should be 0 for character, logical, and date fields. Got: '+inttostr(deci));
 
   if (deci > (le-1)) then
-  raise Exception.Create('The field decimal count should be less than the length - 1. Got: '++inttostr(deci));
+  raise Exception.Create('The field decimal count should be less than the length - 1. Got: '+inttostr(deci));
 
   self.name:=ansistring(na);
   self.Field_type:=ty;
@@ -125,8 +126,8 @@ begin
   ty:=fiel.FieldType;
   le:=fiel.FieldLenth;
   deci:=fiel.FieldDec;
-  if (length(na)>10) then
-  raise Exception.Create('The field name is more than 10 characters long:'+na );
+  if (system.Length(na)>10) then
+  raise Exception.Create('The field name is more than 10 characters long:'+string(na) );
 
   if (ty <> 'C') and (ty <> 'N') and (ty <> 'L') and (ty <> 'D') and (ty <> 'F') then
   raise Exception.Create('The field type is not a valid. Got: '+ty);
@@ -156,7 +157,7 @@ begin
   raise Exception.Create('The field decimal count should be 0 for character, logical, and date fields. Got: '+inttostr(deci));
 
   if (deci > (le-1)) then
-  raise Exception.Create('The field decimal count should be less than the length - 1. Got: '++inttostr(deci));
+  raise Exception.Create('The field decimal count should be less than the length - 1. Got: '+inttostr(deci));
 
   self.name:=pansichar(@(fiel.Fieldname));
   self.Field_type:=fiel.FieldType;
@@ -188,12 +189,12 @@ begin
       s1:=vartostr(obj);
       lowdec1:=self.dec;
       if (bcdtodouble(s1)>=10000.0) and (self.dec>0) then lowdec1:=lowdec1-1;
-      st1:=bcdtostrf(s1,ffFixed,BcdPrecision(s1)+lowdec1,lowdec1);
+      st1:=ansistring(bcdtostrf(s1,ffFixed,BcdPrecision(s1)+lowdec1,lowdec1));
       i:= self.getLength-system.Length(st1);
-      if i<0 then raise Exception.Create('Value ' + st1 + ' cannot fit in pattern');
+      if i<0 then raise Exception.Create('Value ' + string(st1) + ' cannot fit in pattern');
       system.SetLength(st2,i);
-      for j := 1 to i do st2[j]=' ';
-      Result:=st2+st1;
+      for j := 1 to i do st2[j]:=' ';
+      Result:=string(st2+st1);
       exit;
     end;
     raise Exception.Create('Field Type Eror for ' + obj + '.');
@@ -203,17 +204,17 @@ begin
     if varisnull(obj) then
     begin
       system.SetLength(st1,self.getlength);
-      for I := 1 to self.getlength do st1[i]=' ';
+      for I := 1 to self.getlength do st1[i]:=' ';
       obj:=st1;
     end;
     if (vartype(obj)=varString) then
     begin
-      st1:=vartostr(obj);
+      st1:=ansistring(vartostr(obj));
       if (system.Length(st1)>self.getLength) then raise Exception.Create('"' + obj +
       '" is longer than ' + inttostr(self.getLength) + ' characters, value: ' + obj);
       system.SetLength(st2,self.getLength-system.Length(st1));
-      for I := 1 to self.getLength-system.Length(st1) do st2[i]=' ';
-      Result:=st2+st1;
+      for I := 1 to self.getLength-system.Length(st1) do st2[i]:=' ';
+      Result:=string(st2+st1);
       exit;
     end;
     raise Exception.Create('Expected a String, got '+VarTypeAsText(VarType(obj))
@@ -263,7 +264,7 @@ end;
 
 function TDBField.getName: string;
 begin
-  Result:=self.name;
+  Result:=string(self.name);
 end;
 
 function TDBField.getNumberNullValue: string;
@@ -320,13 +321,13 @@ begin
     df1.ShortDateFormat:='yyyymmdd';
     try
       begin
-        if s='' then exit(nil);
+        if s='' then exit(null);
         exit(strtodate(s,df1));
       end;
     except on E: EConvertError do raise E;
     end;
   end;
-  raise Exception.Create('Unrecognized JDBFField type: '+VarTypeAsText(VarType(obj)));
+  raise Exception.Create('Unrecognized JDBFField type: '+self.Field_type);
 end;
 
 procedure TDBField.setDeci(deci: integer);
@@ -341,7 +342,7 @@ end;
 
 procedure TDBField.setName(na: string);
 begin
-  self.name:=na;
+  self.name:=ansistring(na);
 end;
 
 procedure TDBField.setType(ty: ansichar);
@@ -352,19 +353,79 @@ end;
 { TDBFWrite }
 
 procedure TDBFWrite.addRecord(delflag: boolean; objs: tarrayex<variant>);
+var
+i,j,k:integer;
+byte0,byte1:tbytes;
+st:string;
 begin
-
+  if (objs.Len<>self.fields.Count) then raise Exception.Create('Error adding record: Wrong number of values. Expected '+inttostr(self.fields.Count)+',got:'+inttostr(objs.Len));
+  i:=0;
+  for j := 0 to self.fields.Count-1 do i:=i+self.fields[j].getLength;
+  SetLength(byte0,i);
+  k:=0;
+  for j := 0 to self.fields.Count-1 do
+  begin
+    st:='';
+    try
+      st:=self.fields[j].format(objs[j]);
+    except on E: Exception do raise E;
+    end;
+    byte1:=self.dbfEncoding.GetBytes(st);
+    for I := 0 to self.fields[j].getLength-1 do
+    begin
+      if i>=system.Length(byte1) then raise Exception.Create(self.fields[j].getName+ ' field length is'+inttostr(system.Length(byte1))+', It should be ' +inttostr(self.fields[j].getLength)+'.');
+      byte0[(k+i)]:=byte1[i];
+    end;
+    k:=k+self.fields[j].getLength;
+  end;
+  self.WriteBuffStream.WriteData(TExtFuns.IfThen(delflag,42,32));
+  self.WriteBuffStream.WriteBuffer(byte0,0,length(byte0));
 end;
 
 procedure TDBFWrite.addRecord0(delflag: boolean; objs: tarrayex<variant>);
+var
+i,j,k:integer;
+byte0,byte1:tbytes;
+st:string;
+tmp:Tlist<TDBField>;
 begin
+  tmp:=Tlist<TDBfield>.Create;
+  for I := 0 to self.fields.Count-1 do
+    begin
+      if i=5 then
+        tmp.Add( Tdbfield.Create(string(self.fields[i].name),'C',self.fields[i].getLength,0))
+      else
+        tmp.Add(self.fields[i]);
+    end;
+  if (objs.Len<>tmp.Count) then raise Exception.Create('Error adding record: Wrong number of values. Expected '+inttostr(tmp.Count)+',got:'+inttostr(objs.Len));
+  i:=0;
+  for j := 0 to tmp.Count-1 do i:=i+tmp[j].getLength;
+  SetLength(byte0,i);
+  k:=0;
+  for j := 0 to tmp.Count-1 do
+  begin
+    st:='';
+    try
+      st:=tmp[j].format(objs[j]);
+    except on E: Exception do raise E;
+    end;
+    byte1:=self.dbfEncoding.GetBytes(st);
+    for I := 0 to tmp[j].getLength-1 do
+    begin
+      if i>=system.Length(byte1) then raise Exception.Create(tmp[j].getName+ ' field length is'+inttostr(system.Length(byte1))+', It should be ' +inttostr(tmp[j].getLength)+'.');
+      byte0[(k+i)]:=byte1[i];
+    end;
+    k:=k+tmp[j].getLength;
+  end;
+  self.WriteBuffStream.WriteData(TExtFuns.IfThen(delflag,42,32));
+  self.WriteBuffStream.WriteBuffer(byte0,0,length(byte0));
 
 end;
 
-constructor TDBFWrite.Create(DBfields: Tlist<TDBfield>;encode:TEncoding=TEncoding.Default);
+constructor TDBFWrite.Create(DBfields: Tlist<TDBfield>);
 begin
   self.fields:=DBfields;
-  self.dbfEncoding:=encode;
+  self.dbfEncoding:=TEncoding.Default;
   self.WriteBuffStream:=tmemorystream.Create;
 end;
 
@@ -373,7 +434,7 @@ var
 i,j:integer;
 begin
   try
-  begin
+    begin
     self.writeHeader(recCount);
     j:=1;
     for I := 0 to self.fields.Count-1 do
@@ -381,15 +442,39 @@ begin
       self.writeFieldHeader(self.fields[i],j);
       j:=j+self.fields[i].getLength;
     end;
-    self.WriteBuffStream.write
-  end;
+    self.WriteBuffStream.WriteData(13);
+    end;
   except on E: Exception do raise E;
   end;
 end;
 
-procedure TDBFWrite.wirteStream2File(filename: string);
+procedure TDBFWrite.SetEncode(encode: TEncoding);
 begin
+  self.dbfEncoding:=encode;
+end;
 
+procedure TDBFWrite.wirteStream2File(filename: string);
+var
+desf:TFileStream;
+begin
+  try
+  begin
+    desf:=tfilestream.Create(filename,fmOpenWrite or fmShareDenyNone);
+  end;
+  except on E: Exception do
+    raise E;
+  end;
+  try
+    try
+    begin
+      self.WriteBuffStream.Position:=0;
+      desf.CopyFrom(self.WriteBuffStream,0);
+    end;
+    except on E: Exception do raise E;
+    end;
+  finally
+    desf.Free;
+  end;
 end;
 
 procedure TDBFWrite.writeFieldHeader(field: TDBField; loc: integer);
@@ -399,7 +484,7 @@ tb1:tbytes;
 st1:string;
 fid:DBField;
 begin
-  st1:=field.name;
+  st1:=string(field.name);
   tb1:=self.dbfEncoding.GetBytes(st1);
   j:=system.Length(tb1);
   if j>10 then j:=10;
@@ -414,8 +499,24 @@ begin
 end;
 
 procedure TDBFWrite.writeHeader(recCount: integer);
+var
+i,j:word;
+DBhea:DBhead;
+year,mon,da:word;
 begin
-
+  DBhea.dbtype:=3;
+  DecodeDate(SysUtils.Date,year,mon,da);
+  DBhea.dbdate[0]:=byte(year-1900);
+  DBhea.dbdate[1]:=byte(mon);
+  DBhea.dbdate[2]:=byte(da);
+  DBhea.dbrecoun:=recCount;
+  i:=(self.fields.Count+1)*32+1;
+  DBHea.DBHeadLen:=i;
+  i:=1;
+  for j := 0 to self.fields.Count-1 do i:=i+self.fields[j].getLength;
+  DBhea.DBRecLen:=i;
+  for I := 0 to 19 do DBhea.DBRest[i]:=byte(0);
+  self.WriteBuffStream.WriteBuffer(DBhea,sizeof(DBhead));
 end;
 
 end.
