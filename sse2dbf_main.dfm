@@ -65,6 +65,7 @@ object Form2: TForm2
     Height = 25
     Caption = #36716#25442#24320#22987
     TabOrder = 3
+    OnClick = tran_startClick
   end
   object tran_stop: TButton
     Left = 158
