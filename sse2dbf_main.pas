@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,Generics.Collections,
-  arrayex,fmtbcd,DBFdirect;
+  arrayex,fmtbcd,DBFdirect,System.IOUtils,system.Types;
 
 type
   TaskEntry = class
@@ -40,7 +40,7 @@ type
     procedure convertFJYRecord2Map(rec:String;map:TDictionary<string,tarrayex<variant>>);
     function setFirstRecVal(firstRec,szTradePrice,agTradePrice,bgTradePrice:string):tarrayex<variant>;
     function initHead:Tlist<TDBfield>;
-    function firstRecValFormat(headVals:array of string):tarrayex<variant>;
+    function firstRecValFormat(headVals:TArrayEx<string>):tarrayex<variant>;
   protected
     procedure Execute; override;
   public
@@ -280,6 +280,8 @@ begin
   self.entry:=tasken;
   self.freg:=tasken.freg;
   Self.datamap:=TDictionary<string,TArrayEx<Variant>>.Create;
+  Self.T1IOPVMap:=TDictionary<string,string>.Create;
+  Self.IOPVMap:=TDictionary<string,string>.Create;
   inherited Create(True);
 end;
 
@@ -308,9 +310,22 @@ begin
 end;
 
 function TaskRunThread.firstRecValFormat(
-  headVals: array of string): tarrayex<variant>;
+  headVals: tarrayex<string>): tarrayex<variant>;
+var
+fr:TArrayEx<Variant>;
 begin
-
+   fr.SetLen(30);
+   fr[0]:=headVals[0];
+   fr[1]:=headVals[1];
+   fr[2]:=headVals[2];
+   fr[3]:=headVals[3];
+   fr[4]:=headVals[4];
+   fr[5]:=headVals[5];
+   fr[10]:=headVals[10];
+   fr[11]:=headVals[11];
+   fr[12]:=headVals[12];
+   fr[14]:=headVals[14];
+   Result:=fr;
 end;
 
 function TaskRunThread.initHead: Tlist<TDBfield>;
@@ -353,8 +368,37 @@ end;
 
 function TaskRunThread.setFirstRecVal(firstRec, szTradePrice, agTradePrice,
   bgTradePrice: string): tarrayex<variant>;
+var
+obj:Tarrayex<string>;
+stl:TStringList;
+s1:string;
 begin
-
+   obj.SetLen(33);
+   stl:=TStringList.Create;
+   stl.Delimiter:='|';
+   stl.DelimitedText:=firstRec;
+   obj[0]:='000000';
+   obj[1]:=StringReplace(Copy(stl[6],9,8),':','',[rfReplaceAll])+'  ';
+   obj[2]:=agTradePrice;
+   obj[3]:=bgTradePrice;
+   obj[4]:='0';
+   Self.jydate:=Copy(stl[6],0,8);
+   obj[5]:=Self.jydate;
+   s1:=stl[8];
+   if Copy(stl[8],0,1)='E' then
+     begin
+       obj[10]:='1111111111';
+       Self.isclose:=True;
+     end
+   else
+     begin
+       obj[10]:='0';
+       Self.isclose:=False;
+     end;
+   obj[11]:=szTradePrice;
+   obj[12]:=Copy(s1,2,1);
+   obj[14]:=Copy(s1,1,1);
+   Result:=firstRecValFormat(obj);
 end;
 
 procedure TaskRunThread.wirteDBF;
@@ -363,8 +407,27 @@ begin
 end;
 
 procedure TaskRunThread.wirteFJY2Show;
+var
+flines:TStringDynArray;
+lin:string;
 begin
-
+  flines:=TFile.ReadAllLines(Self.entry.fjy);
+  for lin in flines do
+  begin
+    Self.convertFJYRecord2Map(lin,Self.datamap);
+  end;
+  Self.datamap.AddOrSetValue('888880',tarrayex<Variant>.Create(['888880','新标准券','1.0','0.0','0',
+                                '0.0','0.0','0.0','0.0','0.0',
+                                '0',True,'0','0.0','0','0.0',
+                                '0','0','0.0','0','0.0',
+                                '0','0.0','0','0.0','0','0.0',
+                                '0','0.0','0']));
+  Self.datamap.AddOrSetValue('799990',tarrayex<Variant>.Create(['799990','市值股数','1.0','0.0','0',
+                                '0.0','0.0','0.0','0.0','0.0',
+                                '0',True,'0','0.0','0','0.0',
+                                '0','0','0.0','0','0.0',
+                                '0','0.0','0','0.0','0','0.0',
+                                '0','0.0','0']));
 end;
 
 procedure TaskRunThread.wirteMktdt2Show;
