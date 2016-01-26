@@ -88,7 +88,7 @@ end;
 
 function TaskEntry.getfast: string;
 begin
-  Result:=trim(self.ffastpath)+@'\mktdt00.txt';
+  Result:=trim(self.ffastpath)+'\\mktdt00.txt';
 end;
 
 function TaskEntry.getfjy: string;
@@ -103,7 +103,7 @@ end;
 
 function TaskEntry.getshow: string;
 begin
-  Result:=trim(self.fshow2003path)+@'\show2003.dbf';
+  Result:=trim(self.fshow2003path)+'\\show2003.dbf';
 end;
 
 { TaskRunThread }
@@ -115,19 +115,19 @@ var
 sl1,cast:tstringlist;
 obj:tarrayex<variant>;
 s1,id,type1:string;
-i,j,k:Integer;
+i:Integer;
 begin
   if Trim(rec)='' then Exit;
   sl1:=TStringList.Create;
   sl1.Delimiter:='|';
   sl1.DelimitedText:=rec;
-  for I := 0 to sl1.Count-1 do sl1[i]=Trim(sl1[i]);
-  obj:=tarrayex<Variant>.Create('','',VarFMTBcdCreate(0.0),VarFMTBcdCreate(0.0),VarFMTBcdCreate(0),
-                                VarFMTBcdCreate(0.0),VarFMTBcdCreate(0.0),VarFMTBcdCreate(0.0),VarFMTBcdCreate(0.0),VarFMTBcdCreate(0.0),
-                                VarFMTBcdCreate(0),False,VarFMTBcdCreate(0),VarFMTBcdCreate(0.0),VarFMTBcdCreate(0),VarFMTBcdCreate(0.0),
-                                VarFMTBcdCreate(0),VarFMTBcdCreate(0),VarFMTBcdCreate(0.0),VarFMTBcdCreate(0),VarFMTBcdCreate(0.0),
-                                VarFMTBcdCreate(0),VarFMTBcdCreate(0.0),VarFMTBcdCreate(0),VarFMTBcdCreate(0.0),VarFMTBcdCreate(0),VarFMTBcdCreate(0.0),
-                                VarFMTBcdCreate(0),VarFMTBcdCreate(0.0),VarFMTBcdCreate(0));
+  for I := 0 to sl1.Count-1 do sl1[i]:=Trim(sl1[i]);
+  obj:=tarrayex<Variant>.Create(['','','0.0','0.0','0',
+                                '0.0','0.0','0.0','0.0','0.0',
+                                '0',null,'0','0.0','0','0.0',
+                                '0','0','0.0','0','0.0',
+                                '0','0.0','0','0.0','0','0.0',
+                                '0','0.0','0']);
   type1:=sl1[5];
   id:=sl1[1];
   obj[0]:=id;
@@ -162,39 +162,39 @@ begin
   cast.Add('ER'); //22
   cast.Add('EZ'); //23
   case cast.IndexOf(type1) of
-  0,1,9,10,12: obj[2]:=VarFMTBcdCreate(sl1[11]);
+  0,1,9,10,12: obj[2]:=sl1[11];
   2,3,4   :
            begin
-             obj[2]:=VarFMTBcdCreate(sl1[11]);
+             obj[2]:=sl1[11];
              obj[11]:=True;
            end;
   5,6,7,8 :
            begin
-             obj[2]:=VarFMTBcdCreate(sl1[11]);
+             obj[2]:=sl1[11];
              obj[3]:=obj[2];
            end;
-  11:      obj[2]:=VarFMTBcdCreate('100.000');
+  11:      obj[2]:='100.000';
   13,14   :
            begin
-             obj[2]:=VarFMTBcdCreate(sl1[24]);
-             obj[7]:=VarFMTBcdCreate(sl1[25]);
+             obj[2]:=sl1[24];
+             obj[7]:=sl1[25];
            end;
-  15,19,20:obj[2]:=VarFMTBcdCreate('1.000');
-  16,17,18:obj[2]:=VarFMTBcdCreate('0.000');
+  15,19,20:obj[2]:='1.000';
+  16,17,18:obj[2]:='0.000';
   21,22   :
            begin
              s1:=Self.T1IOPVMap.Items[sl1[3]];
-             if s1<>nil then
-             obj[2]:=VarFMTBcdCreate(s1);
+             if s1<>null then
+             obj[2]:=s1;
              s1:=Self.IOPVMap.Items[sl1[3]];
-             if s1<>nil then
-             obj[7]:=VarFMTBcdCreate(s1);
+             if s1<>null then
+             obj[7]:=s1;
            end;
   23      :obj[11]:=True;
   else
           begin
             if (id='799988') or (id='799996') or (id='799998') or (id='799999') or (id='939988') then
-            obj[2]:=VarFMTBcdCreate('1.000');
+            obj[2]:='1.000';
           end;
   end;
   map.AddOrSetValue(sl1[1],obj);
@@ -202,16 +202,16 @@ end;
 
 procedure TaskRunThread.convertMktdtRecord2Map(rec: String);
 var
-sl1,cast:tstringlist;
+sl1:tstringlist;
 obj:tarrayex<variant>;
-s1,id,type1:string;
-i,j,k:Integer;
+s1,type1:string;
+i:Integer;
 begin
   if Trim(rec)='' then Exit;
   sl1:=TStringList.Create;
   sl1.Delimiter:='|';
   sl1.DelimitedText:=rec;
-  for I := 0 to sl1.Count-1 do sl1[i]=Trim(sl1[i]);
+  for I := 0 to sl1.Count-1 do sl1[i]:=Trim(sl1[i]);
   type1:=sl1[0];
   if type1='TRAILER' then Exit;
   obj.SetLen(30);
@@ -219,54 +219,53 @@ begin
     begin
       obj[0]:=sl1[1];
       obj[1]:=sl1[2];
-      obj[2]:=VarFMTBcdCreate(sl1[5]);
-      obj[3]:=VarFMTBcdCreate(sl1[6]);
-      j:=BcdToInteger(BCDRoundTo(strtobcd(sl1[4]),0));
-      if Length(IntToStr(j))>12 then
-      j:=999999999999;
-      obj[4]:=VarFMTBcdCreate(j);
-      obj[5]:=VarFMTBcdCreate(sl1[7]);
-      obj[6]:=VarFMTBcdCreate(sl1[8]);
-      obj[7]:=VarFMTBcdCreate(TExtFuns.IfThen(Self.isclose,sl1[10],sl1[9]));
-      obj[10]:= VarFMTBcdCreate(sl1[3]);;
+      obj[2]:=sl1[5];
+      obj[3]:=sl1[6];
+      s1:=BcdToStr(BCDRoundTo(strtobcd(sl1[4]),0));
+      if Length(Trim(s1))>12 then
+      s1:='999999999999';
+      obj[4]:=s1;
+      obj[5]:=sl1[7];
+      obj[6]:=sl1[8];
+      obj[7]:=TExtFuns.IfThen(Self.isclose,sl1[10],sl1[9]);
+      obj[10]:= sl1[3];;
       obj[11]:=True;
     end
   else
     begin
       obj[0]:=sl1[1];
       obj[1]:=sl1[2];
-      obj[2]:=VarFMTBcdCreate(sl1[5]);
-      obj[3]:=VarFMTBcdCreate(sl1[6]);
-      j:=BcdToInteger(BCDRoundTo(strtobcd(sl1[4]),0));
-      if Length(IntToStr(j))>12 then
-      j:=999999999999;
-      obj[4]:=VarFMTBcdCreate(j);
-      obj[5]:=VarFMTBcdCreate(sl1[7]);
-      obj[6]:=VarFMTBcdCreate(sl1[8]);
-      obj[7]:=VarFMTBcdCreate(TExtFuns.IfThen(Self.isclose,sl1[10],sl1[9]));
-      obj[8]:=VarFMTBcdCreate(sl1[11]);
-      obj[9]:=VarFMTBcdCreate(sl1[13]);
-      obj[10]:= VarFMTBcdCreate(sl1[3]);;
+      obj[2]:=sl1[5];
+      obj[3]:=sl1[6];
+      s1:=BcdToStr(BCDRoundTo(strtobcd(sl1[4]),0));
+      if Length(Trim(s1))>12 then
+      s1:='999999999999';
+      obj[4]:=s1;
+      obj[5]:=sl1[7];
+      obj[6]:=sl1[8];
+      obj[7]:=TExtFuns.IfThen(Self.isclose,sl1[10],sl1[9]);
+      obj[8]:=sl1[11];
+      obj[9]:=sl1[13];
+      obj[10]:= sl1[3];;
       s1:=TExtFuns.IfThen(type1='MD004',sl1[33],sl1[31]);
       obj[11]:=TExtFuns.IfThen(((Copy(s1,0,1)<>'P') and (Copy(s1,2,1)='1')),False,True);
-      obj[12]:=VarFMTBcdCreate(sl1[12]);
-      obj[13]:=VarFMTBcdCreate(sl1[15]);
-      obj[14]:=VarFMTBcdCreate(sl1[16]);
-      obj[15]:=VarFMTBcdCreate(sl1[19]);
-      obj[16]:=VarFMTBcdCreate(sl1[20]);
-      obj[17]:=VarFMTBcdCreate(sl1[14]);
-      obj[18]:=VarFMTBcdCreate(sl1[17]);
-      obj[19]:=VarFMTBcdCreate(sl1[18]);
-      obj[20]:=VarFMTBcdCreate(sl1[21]);
-      obj[21]:=VarFMTBcdCreate(sl1[22]);
-      obj[22]:=VarFMTBcdCreate(sl1[23]);
-      obj[23]:=VarFMTBcdCreate(sl1[24]);
-      obj[24]:=VarFMTBcdCreate(sl1[27]);
-      obj[25]:=VarFMTBcdCreate(sl1[28]);
-      obj[26]:=VarFMTBcdCreate(sl1[25]);
-      obj[27]:=VarFMTBcdCreate(sl1[26]);
-      obj[28]:=VarFMTBcdCreate(sl1[29]);
-      obj[29]:=VarFMTBcdCreate(sl1[30]);
+      obj[12]:=sl1[12];
+      obj[13]:=sl1[15];
+      obj[14]:=sl1[16];
+      obj[15]:=sl1[19];
+      obj[16]:=sl1[20];
+      obj[17]:=sl1[14];
+      obj[18]:=sl1[17];
+      obj[19]:=sl1[18];
+      obj[20]:=sl1[21];
+      obj[21]:=sl1[22];
+      obj[23]:=sl1[24];
+      obj[24]:=sl1[27];
+      obj[25]:=sl1[28];
+      obj[26]:=sl1[25];
+      obj[27]:=sl1[26];
+      obj[28]:=sl1[29];
+      obj[29]:=sl1[30];
     end;
   if type1='MD004' then
   begin
@@ -286,7 +285,7 @@ end;
 
 procedure TaskRunThread.Execute;
 var
-start,hlong,j,k:integer;
+start,hlong,j,k,l:integer;
 begin
   inherited;
   while NOT self.Terminated do
@@ -299,7 +298,9 @@ begin
          wirteDBF;
          hlong:=gettickcount-start;
          j:=self.freg-hlong;
-         sleep(TExtFuns.IfThen(j>0,j,100));
+         l:=100;
+         k:=TExtFuns.IfThen((j>0),j,l);
+         sleep(k);
        end;
      except on E: Exception do self.entry.logger.Add(e.Message)
      end;
