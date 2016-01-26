@@ -180,16 +180,20 @@ var
   s1:tbcd;
   lowdec1,i,j:integer;
   st1,st2:ansistring;
+  ob:string;
   bo:boolean;
+  re:Extended;
 begin
   if (self.Field_type='N') or (self.Field_type='F') then
   begin
-    if (vartype(obj)=VarFMTBcd) then
+    if (vartype(obj)=varString) then
     begin
-      s1:=VarToBcd(obj);
+      ob:=obj;
+      i:=System.Length(ob);
+      re:=StrToFloat(ob);
       lowdec1:=self.dec;
-      if (bcdtodouble(s1)>=10000.0) and (self.dec>0) then lowdec1:=lowdec1-1;
-      st1:=ansistring(bcdtostrf(s1,ffFixed,BcdPrecision(s1)+lowdec1,lowdec1));
+      if (re>=10000.0) and (self.dec>0) then lowdec1:=lowdec1-1;
+      st1:=ansistring(FloatToStrF(re,ffFixed,i,lowdec1));
       i:= self.getLength-system.Length(st1);
       if i<0 then raise Exception.Create('Value ' + string(st1) + ' cannot fit in pattern');
       system.SetLength(st2,i);
@@ -209,7 +213,8 @@ begin
     end;
     if (vartype(obj)=varString) then
     begin
-      st1:=ansistring(vartostr(obj));
+      ob:=obj;
+      st1:=ansistring(ob);
       if (system.Length(st1)>self.getLength) then raise Exception.Create('"' + obj +
       '" is longer than ' + inttostr(self.getLength) + ' characters, value: ' + obj);
       system.SetLength(st2,self.getLength-system.Length(st1));
@@ -228,7 +233,7 @@ begin
     end;
     if (vartype(obj)=varBoolean) then
     begin
-      bo:=varIsType(obj, varBoolean);
+      bo:=obj;
       Result:=TExtFuns.IfThen(bo,'Y','N');
       exit;
     end;
