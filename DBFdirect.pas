@@ -184,9 +184,9 @@ var
 begin
   if (self.Field_type='N') or (self.Field_type='F') then
   begin
-    if (vartype(obj)=varInteger) or (vartype(obj)=varDouble) then
+    if (vartype(obj)=VarFMTBcd) then
     begin
-      s1:=vartostr(obj);
+      s1:=VarToBcd(obj);
       lowdec1:=self.dec;
       if (bcdtodouble(s1)>=10000.0) and (self.dec>0) then lowdec1:=lowdec1-1;
       st1:=ansistring(bcdtostrf(s1,ffFixed,BcdPrecision(s1)+lowdec1,lowdec1));
