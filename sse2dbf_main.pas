@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,Generics.Collections,
-  arrayex,fmtbcd,DBFdirect,System.IOUtils,system.Types;
+  arrayex,fmtbcd,DBFdirect,System.IOUtils,system.Types, Vcl.Buttons;
 
 type
   TaskEntry = class
@@ -45,6 +45,7 @@ type
     procedure Execute; override;
   public
     constructor Create(tasken:taskentry);
+    constructor Destroy;
   end;
   TForm2 = class(TForm)
     Label1: TLabel;
@@ -55,7 +56,17 @@ type
     dbfdir: TEdit;
     tran_start: TButton;
     tran_stop: TButton;
+    dlgOpen1: TOpenDialog;
+    btn1: TBitBtn;
+    btn2: TBitBtn;
+    btn3: TBitBtn;
+    mmo1: TMemo;
     procedure tran_startClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure btn1Click(Sender: TObject);
+    procedure btn2Click(Sender: TObject);
+    procedure btn3Click(Sender: TObject);
+    procedure tran_stopClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -64,14 +75,51 @@ type
 
 var
   Form2: TForm2;
+  mythread:TaskRunThread;
+  g_entry:TaskEntry;
 
 implementation
 
 {$R *.dfm}
 
+procedure TForm2.btn1Click(Sender: TObject);
+begin
+  dlgOpen1.Title:='选择fast目录';
+  if dlgOpen1.Execute then fastdir.Text:=TPath.GetDirectoryName(dlgOpen1.FileName);
+end;
+
+procedure TForm2.btn2Click(Sender: TObject);
+begin
+  dlgOpen1.Title:='选择fjy目录';
+  if dlgOpen1.Execute then fjydir.Text:=TPath.GetDirectoryName(dlgOpen1.FileName);
+end;
+
+procedure TForm2.btn3Click(Sender: TObject);
+begin
+  dlgOpen1.Title:='选择show2003目录';
+  if dlgOpen1.Execute then dbfdir.Text:=TPath.GetDirectoryName(dlgOpen1.FileName);
+
+end;
+
+procedure TForm2.FormCreate(Sender: TObject);
+begin
+  g_entry:=TaskEntry.Create;
+end;
+
 procedure TForm2.tran_startClick(Sender: TObject);
 begin
+  g_entry.fast:=Trim(fastdir.Text);
+  g_entry.fjy:=Trim(fjydir.Text);
+  g_entry.show:=Trim(dbfdir.Text);
+  mythread:=TaskRunThread.Create(g_entry);
+  mythread.Start;
+end;
 
+procedure TForm2.tran_stopClick(Sender: TObject);
+begin
+  if mythread<>nil then
+     mythread.Terminate;
+  mmo1.Lines.Assign(g_entry.logger);
 end;
 
 { TaskEntry }
@@ -88,12 +136,12 @@ end;
 
 function TaskEntry.getfast: string;
 begin
-  Result:=trim(self.ffastpath)+'\\mktdt00.txt';
+  Result:=trim(self.ffastpath)+'\mktdt00.txt';
 end;
 
 function TaskEntry.getfjy: string;
 begin
-  Result:=trim(self.ffjypath)+'\\'+formatdatetime('yyyymmdd',date)+'.txt';
+  Result:=trim(self.ffjypath)+'\fjy'+formatdatetime('yyyymmdd',date)+'.txt';
 end;
 
 function TaskEntry.getfreg: integer;
@@ -103,7 +151,7 @@ end;
 
 function TaskEntry.getshow: string;
 begin
-  Result:=trim(self.fshow2003path)+'\\show2003.dbf';
+  Result:=trim(self.fshow2003path)+'\show2003.dbf';
 end;
 
 { TaskRunThread }
@@ -119,6 +167,7 @@ i:Integer;
 begin
   if Trim(rec)='' then Exit;
   sl1:=TStringList.Create;
+  sl1.StrictDelimiter:=True;
   sl1.Delimiter:='|';
   sl1.DelimitedText:=rec;
   for I := 0 to sl1.Count-1 do sl1[i]:=Trim(sl1[i]);
@@ -198,6 +247,8 @@ begin
           end;
   end;
   map.AddOrSetValue(sl1[1],obj);
+  cast.Free;
+  sl1.Free;
 end;
 
 procedure TaskRunThread.convertMktdtRecord2Map(rec: String);
@@ -209,13 +260,14 @@ i:Integer;
 begin
   if Trim(rec)='' then Exit;
   sl1:=TStringList.Create;
+  sl1.StrictDelimiter:=True;
   sl1.Delimiter:='|';
   sl1.DelimitedText:=rec;
   for I := 0 to sl1.Count-1 do sl1[i]:=Trim(sl1[i]);
   type1:=sl1[0];
   if type1='TRAILER' then Exit;
   obj.SetLen(30);
-  if type1='MD0001' then
+  if type1='MD001' then
     begin
       obj[0]:=sl1[1];
       obj[1]:=sl1[2];
@@ -247,7 +299,8 @@ begin
       obj[8]:=sl1[11];
       obj[9]:=sl1[13];
       obj[10]:= sl1[3];;
-      s1:=TExtFuns.IfThen(type1='MD004',sl1[33],sl1[31]);
+      if type1='MD004' then s1:=sl1[33]
+      else s1:=sl1[31];
       obj[11]:=TExtFuns.IfThen(((Copy(s1,0,1)<>'P') and (Copy(s1,2,1)='1')),False,True);
       obj[12]:=sl1[12];
       obj[13]:=sl1[15];
@@ -273,6 +326,7 @@ begin
     Self.IOPVMap.AddOrSetValue(sl1[1],sl1[32]);
   end;
   Self.datamap.AddOrSetValue(sl1[1],obj);
+  sl1.Free;
 end;
 
 constructor TaskRunThread.Create(tasken: taskentry);
@@ -285,25 +339,40 @@ begin
   inherited Create(True);
 end;
 
+constructor TaskRunThread.Destroy;
+begin
+  Self.T1IOPVMap.Free;
+  Self.IOPVMap.Free;
+  Self.datamap.Free;
+end;
+
 procedure TaskRunThread.Execute;
 var
-start,hlong,j,k,l:integer;
+start,hlong,h1,h2,h3,j,k,l:integer;
 begin
   inherited;
+  FreeOnTerminate:=True;
   while NOT self.Terminated do
   begin
      try
        begin
          start:=gettickcount;
          wirteMktdt2Show;
+         h1:=gettickcount;
          wirteFJY2Show;
+         h2:=gettickcount;
          wirteDBF;
-         hlong:=gettickcount-start;
+         h3:=gettickcount;
+         hlong:=h3-start;
          j:=self.freg-hlong;
          l:=100;
          k:=TExtFuns.IfThen((j>0),j,l);
          sleep(k);
-       end;
+{         Synchronize(procedure
+                     begin
+                       form2.mmo1.Lines.Add(Format('三段使用时间分别为：%d,%d,%d，总时间为%d',[h1-start,h2-h1,h3-h2,hlong]))
+                     end);
+}       end;
      except on E: Exception do self.entry.logger.Add(e.Message)
      end;
   end;
@@ -375,17 +444,18 @@ s1:string;
 begin
    obj.SetLen(33);
    stl:=TStringList.Create;
+   stl.StrictDelimiter:=True;
    stl.Delimiter:='|';
    stl.DelimitedText:=firstRec;
    obj[0]:='000000';
-   obj[1]:=StringReplace(Copy(stl[6],9,8),':','',[rfReplaceAll])+'  ';
+   obj[1]:=StringReplace(Copy(stl[6],10,8),':','',[rfReplaceAll])+'  ';
    obj[2]:=agTradePrice;
    obj[3]:=bgTradePrice;
    obj[4]:='0';
-   Self.jydate:=Copy(stl[6],0,8);
+   Self.jydate:=Copy(stl[6],1,8);
    obj[5]:=Self.jydate;
    s1:=stl[8];
-   if Copy(stl[8],0,1)='E' then
+   if Copy(stl[8],1,1)='E' then
      begin
        obj[10]:='1111111111';
        Self.isclose:=True;
@@ -396,9 +466,10 @@ begin
        Self.isclose:=False;
      end;
    obj[11]:=szTradePrice;
-   obj[12]:=Copy(s1,2,1);
-   obj[14]:=Copy(s1,1,1);
+   obj[12]:=Copy(s1,3,1);
+   obj[14]:=Copy(s1,2,1);
    Result:=firstRecValFormat(obj);
+   stl.Free;
 end;
 
 procedure TaskRunThread.wirteDBF;
@@ -432,14 +503,22 @@ begin
   write1.wirteStream2File(Self.entry.show);
   Self.T1IOPVMap.Clear;
   Self.IOPVMap.Clear;
+  for st1 in stl do Self.datamap.Items[st1]:=nil;
+  Self.datamap.Clear;
+  stl.Free;
+  write1.Free;
 end;
 
 procedure TaskRunThread.wirteFJY2Show;
 var
-flines:TStringDynArray;
+flines:TStringList;
 lin:string;
 begin
-  flines:=TFile.ReadAllLines(Self.entry.fjy);
+  flines:=TStringList.Create;
+  try
+    flines.LoadFromFile(Self.entry.fjy);
+  except on E: EInOutError do  Self.entry.logger.Add(format('文件%s读取失败，错误原因%s',[self.entry.fjy,e.Message]));
+  end;
   for lin in flines do
   begin
     Self.convertFJYRecord2Map(lin,Self.datamap);
@@ -456,11 +535,56 @@ begin
                                 '0','0','0.0','0','0.0',
                                 '0','0.0','0','0.0','0','0.0',
                                 '0','0.0','0']));
+  flines.Free;
 end;
 
 procedure TaskRunThread.wirteMktdt2Show;
+var
+flines:TStringList;
+lin,firstrec:string;
+szRecord,agRecord,enRecord:TStringList;
+i:Integer;
+obj1:tarrayex<Variant>;
 begin
-
+  flines:=TStringList.Create;
+  try
+    flines.LoadFromFile(Self.entry.fast);
+  except on E: EInOutError do  Self.entry.logger.Add(format('文件%s读取失败，错误原因%s',[self.entry.fast,e.Message]));
+  end;
+  i:=0;
+  enRecord:=TStringList.Create;
+  szRecord:=TStringList.Create;
+  agRecord:=TStringList.Create;
+  enRecord.StrictDelimiter:=True;
+  szRecord.StrictDelimiter:=True;
+  agRecord.StrictDelimiter:=True;
+  enRecord.Delimiter:='|';
+  szRecord.Delimiter:='|';
+  agRecord.Delimiter:='|';
+  for lin in flines do
+  begin
+    i:=i+1;
+    case i of
+    1:firstrec:=lin;
+    2:szRecord.DelimitedText:=lin;
+    3:agRecord.DelimitedText:=lin;
+    4:begin
+        enRecord.DelimitedText:=lin;
+        obj1:=setFirstRecVal(firstrec,szRecord[9],agRecord[9],enRecord[9]);
+        Self.datamap.AddOrSetValue('000000',obj1);
+        Self.convertMktdtRecord2Map(szRecord.DelimitedText);
+        Self.convertMktdtRecord2Map(agRecord.DelimitedText);
+      end;
+    else
+      if i=183 then
+         i:=i;
+      Self.convertMktdtRecord2Map(lin);
+    end;
+  end;
+  flines.Free;
+  szRecord.Free;
+  agRecord.Free;
+  enRecord.Free;
 end;
 
 end.

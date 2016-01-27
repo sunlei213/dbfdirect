@@ -11,6 +11,7 @@ object Form2: TForm2
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -74,5 +75,46 @@ object Form2: TForm2
     Height = 25
     Caption = #36716#25442#20572#27490
     TabOrder = 4
+    OnClick = tran_stopClick
+  end
+  object btn1: TBitBtn
+    Left = 232
+    Top = 22
+    Width = 25
+    Height = 25
+    Caption = '...'
+    TabOrder = 5
+    OnClick = btn1Click
+  end
+  object btn2: TBitBtn
+    Left = 232
+    Top = 53
+    Width = 25
+    Height = 25
+    Caption = '...'
+    TabOrder = 6
+    OnClick = btn2Click
+  end
+  object btn3: TBitBtn
+    Left = 232
+    Top = 80
+    Width = 25
+    Height = 25
+    Caption = '...'
+    TabOrder = 7
+    OnClick = btn3Click
+  end
+  object mmo1: TMemo
+    Left = 176
+    Top = 136
+    Width = 305
+    Height = 185
+    Lines.Strings = (
+      'mmo1')
+    TabOrder = 8
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 32
+    Top = 304
   end
 end
