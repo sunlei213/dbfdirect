@@ -402,8 +402,36 @@ begin
 end;
 
 procedure TaskRunThread.wirteDBF;
+var
+stl:TList<string>;
+st1:string;
+write1:TDBFWrite;
+obj1:TArrayEx<Variant>;
+delflag,ob11:Boolean;
 begin
-
+  stl:=TList<string>.Create(Self.datamap.Keys);
+  write1:=TDBFWrite.Create(initHead);
+  write1.initHead2Stream(Self.datamap.Count);
+  stl.Sort;
+  for st1 in stl do
+  begin
+    obj1:=Self.datamap.Items[st1];
+    if st1='000000' then
+      write1.addRecord0(True,obj1)
+    else
+      begin
+        delflag:=False;
+        ob11:=False;
+        if VarType(obj1[11])=varBoolean then ob11:=obj1[11];
+        if ob11 then
+           delflag:=true;
+        obj1[11]:=null;
+        write1.addRecord(delflag,obj1);
+      end;
+  end;
+  write1.wirteStream2File(Self.entry.show);
+  Self.T1IOPVMap.Clear;
+  Self.IOPVMap.Clear;
 end;
 
 procedure TaskRunThread.wirteFJY2Show;
