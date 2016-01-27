@@ -59,6 +59,7 @@ type
       procedure writeFieldHeader(field:TDBField;loc:integer);
     public
       constructor Create(DBfields:Tlist<TDBfield>);
+      constructor Destroy;
       procedure initHead2Stream(recCount:integer);
       procedure addRecord(delflag:boolean;objs:tarrayex<variant>);
       procedure addRecord0(delflag:boolean;objs:tarrayex<variant>);
@@ -104,7 +105,7 @@ begin
   if (deci < 0) then
   raise Exception.Create('The field decimal count should not be a negative integer. Got: '+inttostr(deci));
 
-  if ((ty <> 'C') or (ty <> 'L') or (ty <> 'D')) and (deci <> 0) then
+  if ((ty = 'C') or (ty = 'L') or (ty = 'D')) and (deci <> 0) then
   raise Exception.Create('The field decimal count should be 0 for character, logical, and date fields. Got: '+inttostr(deci));
 
   if (deci > (le-1)) then
@@ -167,7 +168,7 @@ end;
 
 function TDBField.format(obj: Variant):string;
 begin
-  if ((self.Field_type='N') or (self.Field_type='F')) and ( varisnull(obj) )then
+  if ((self.Field_type='N') or (self.Field_type='F')) and ( VarIsClear(obj) or varisnull(obj))then
   begin
     Result:= getNumberNullValue();
     exit;
@@ -186,7 +187,9 @@ var
 begin
   if (self.Field_type='N') or (self.Field_type='F') then
   begin
-    if (vartype(obj)=varString) then
+    if VarIsClear(obj) then
+       obj:='0';
+    if (vartype(obj)=varString) or (vartype(obj)=varUString) then
     begin
       ob:=obj;
       i:=System.Length(ob);
@@ -205,13 +208,13 @@ begin
   end;
   if (self.Field_type='C') then
   begin
-    if varisnull(obj) then
+    if varisnull(obj) or VarIsClear(obj) then
     begin
       system.SetLength(st1,self.getlength);
       for I := 1 to self.getlength do st1[i]:=' ';
       obj:=st1;
     end;
-    if (vartype(obj)=varString) then
+    if (vartype(obj)=varString) or (vartype(obj)=varUString) then
     begin
       ob:=obj;
       st1:=ansistring(ob);
@@ -222,12 +225,12 @@ begin
       Result:=string(st2+st1);
       exit;
     end;
-    raise Exception.Create('Expected a String, got '+VarTypeAsText(VarType(obj))
+    raise Exception.Create('Expected a String, got '+inttostr(VarType(obj))
     +', value: '+vartostr(obj));
   end;
   if (self.Field_type='L') then
   begin
-    if varisnull(obj) then
+    if varisnull(obj) or VarIsClear(obj) then
     begin
       obj:=false;
     end;
@@ -242,7 +245,7 @@ begin
   end;
   if (self.Field_type='D') then
   begin
-    if varisnull(obj) then
+    if varisnull(obj) or VarIsClear(obj) then
     begin
       obj:=Date;
     end;
@@ -432,6 +435,15 @@ begin
   self.fields:=DBfields;
   self.dbfEncoding:=TEncoding.Default;
   self.WriteBuffStream:=tmemorystream.Create;
+end;
+
+constructor TDBFWrite.Destroy;
+var
+i:Integer;
+begin
+  for I := 0 to Self.fields.Count-1 do Self.fields.Items[i].Free;
+  Self.fields.Free;
+  Self.WriteBuffStream.Free;
 end;
 
 procedure TDBFWrite.initHead2Stream(recCount: integer);
