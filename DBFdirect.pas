@@ -59,7 +59,7 @@ type
       procedure writeFieldHeader(field:TDBField;loc:integer);
     public
       constructor Create(DBfields:Tlist<TDBfield>);
-      constructor Destroy;
+      destructor Destroy;override;
       procedure initHead2Stream(recCount:integer);
       procedure addRecord(delflag:boolean;objs:tarrayex<variant>);
       procedure addRecord0(delflag:boolean;objs:tarrayex<variant>);
@@ -396,12 +396,16 @@ i,j,k:integer;
 byte0,byte1:tbytes;
 st:string;
 tmp:Tlist<TDBField>;
+dbfield:TDBField;
 begin
   tmp:=Tlist<TDBfield>.Create;
   for I := 0 to self.fields.Count-1 do
     begin
       if i=5 then
-        tmp.Add( Tdbfield.Create(string(self.fields[i].name),'C',self.fields[i].getLength,0))
+        begin
+          dbfield:=Tdbfield.Create(string(self.fields[i].name),'C',self.fields[i].getLength,0);
+          tmp.Add(dbfield);
+        end
       else
         tmp.Add(self.fields[i]);
     end;
@@ -427,7 +431,8 @@ begin
   end;
   self.WriteBuffStream.WriteData(TExtFuns.IfThen(delflag,42,32));
   self.WriteBuffStream.WriteBuffer(byte0,0,length(byte0));
-
+  dbfield.Free;
+  tmp.Free;
 end;
 
 constructor TDBFWrite.Create(DBfields: Tlist<TDBfield>);
@@ -437,13 +442,14 @@ begin
   self.WriteBuffStream:=tmemorystream.Create;
 end;
 
-constructor TDBFWrite.Destroy;
+destructor TDBFWrite.Destroy;
 var
 i:Integer;
 begin
   for I := 0 to Self.fields.Count-1 do Self.fields.Items[i].Free;
   Self.fields.Free;
   Self.WriteBuffStream.Free;
+  inherited;
 end;
 
 procedure TDBFWrite.initHead2Stream(recCount: integer);
@@ -476,7 +482,7 @@ desf:TFileStream;
 begin
   try
   begin
-    desf:=tfilestream.Create(filename,fmOpenWrite or fmShareDenyNone);
+    desf:=tfilestream.Create(filename,fmOpenReadWrite or fmShareDenyNone);
   end;
   except on E: Exception do
     raise E;
@@ -484,7 +490,9 @@ begin
   try
     try
     begin
+      desf.Size:=Self.WriteBuffStream.Size;
       self.WriteBuffStream.Position:=0;
+      desf.Position:=0;
       desf.CopyFrom(self.WriteBuffStream,0);
     end;
     except on E: Exception do raise E;
@@ -512,6 +520,8 @@ begin
   fid.FieldOffest:=loc;
   fid.FieldLenth:=byte(field.length);
   fid.FieldDec:=byte(field.dec);
+  for I := 0 to Length(fid.FieldRest)-1 do fid.FieldRest[i]:=0;
+
   self.WriteBuffStream.WriteBuffer(fid,sizeof(DBField));
 end;
 
