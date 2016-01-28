@@ -1,9 +1,9 @@
 object Form2: TForm2
   Left = 0
   Top = 0
-  Caption = 'Form2'
+  Caption = #34892#24773#25968#25454#33853#22320
   ClientHeight = 478
-  ClientWidth = 717
+  ClientWidth = 466
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -12,109 +12,106 @@ object Form2: TForm2
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
-    Left = 40
+    Left = 72
     Top = 27
     Width = 57
     Height = 13
     Caption = 'Fast'#30446#24405#65306
   end
   object Label2: TLabel
-    Left = 40
+    Left = 72
     Top = 56
     Width = 49
     Height = 13
     Caption = 'fjy'#30446#24405#65306
   end
   object Label3: TLabel
-    Left = 40
+    Left = 72
     Top = 83
     Width = 40
     Height = 13
     Caption = 'dbf'#30446#24405
   end
-  object fastdir: TEdit
-    Left = 112
-    Top = 24
-    Width = 121
-    Height = 21
-    TabOrder = 0
-    Text = 'fastdir'
+  object lbl1: TLabel
+    Left = 72
+    Top = 139
+    Width = 16
+    Height = 13
+    Caption = 'lbl1'
   end
-  object fjydir: TEdit
-    Left = 112
-    Top = 53
-    Width = 121
-    Height = 21
-    TabOrder = 1
-    Text = 'Edit1'
+  object lbl2: TLabel
+    Left = 144
+    Top = 27
+    Width = 16
+    Height = 18
+    Caption = 'lbl2'
   end
-  object dbfdir: TEdit
-    Left = 112
-    Top = 80
-    Width = 121
-    Height = 21
-    TabOrder = 2
-    Text = 'Edit1'
+  object lbl3: TLabel
+    Left = 143
+    Top = 56
+    Width = 16
+    Height = 13
+    Caption = 'lbl2'
+  end
+  object lbl4: TLabel
+    Left = 143
+    Top = 83
+    Width = 16
+    Height = 13
+    Caption = 'lbl2'
+  end
+  object freq_1: TLabel
+    Left = 72
+    Top = 115
+    Width = 65
+    Height = 13
+    Caption = #21047#26032#39057#29575'(s):'
+  end
+  object lbl5: TLabel
+    Left = 143
+    Top = 115
+    Width = 16
+    Height = 13
+    Caption = 'lbl2'
   end
   object tran_start: TButton
-    Left = 40
-    Top = 368
+    Left = 96
+    Top = 416
     Width = 75
     Height = 25
     Caption = #36716#25442#24320#22987
-    TabOrder = 3
+    TabOrder = 0
     OnClick = tran_startClick
   end
   object tran_stop: TButton
-    Left = 158
-    Top = 368
+    Left = 278
+    Top = 416
     Width = 75
     Height = 25
     Caption = #36716#25442#20572#27490
-    TabOrder = 4
+    TabOrder = 1
     OnClick = tran_stopClick
   end
-  object btn1: TBitBtn
-    Left = 232
-    Top = 22
-    Width = 25
-    Height = 25
-    Caption = '...'
-    TabOrder = 5
-    OnClick = btn1Click
-  end
-  object btn2: TBitBtn
-    Left = 232
-    Top = 53
-    Width = 25
-    Height = 25
-    Caption = '...'
-    TabOrder = 6
-    OnClick = btn2Click
-  end
-  object btn3: TBitBtn
-    Left = 232
-    Top = 80
-    Width = 25
-    Height = 25
-    Caption = '...'
-    TabOrder = 7
-    OnClick = btn3Click
-  end
   object mmo1: TMemo
-    Left = 176
-    Top = 136
-    Width = 305
-    Height = 185
+    Left = 72
+    Top = 232
+    Width = 281
+    Height = 161
     Lines.Strings = (
       'mmo1')
-    TabOrder = 8
+    TabOrder = 2
   end
-  object dlgOpen1: TOpenDialog
-    Left = 32
-    Top = 304
+  object set_btn1: TButton
+    Left = 160
+    Top = 184
+    Width = 75
+    Height = 25
+    Caption = #35774#32622#30446#24405
+    TabOrder = 3
+    OnClick = set_btn1Click
   end
 end

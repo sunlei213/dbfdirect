@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,Generics.Collections,
-  arrayex,fmtbcd,DBFdirect,System.IOUtils,system.Types, Vcl.Buttons;
+  arrayex,fmtbcd,DBFdirect,System.IOUtils,system.Types, Vcl.Buttons,sse2dbf_set;
 
 type
   TaskEntry = class
@@ -19,7 +19,7 @@ type
   public
     logger:tstringlist;
     constructor Create;
-    constructor Destory;
+    Destructor Destroy;override;
     property fast:string read getfast write ffastpath;
     property show:string read getshow write fshow2003path;
     property fjy:string read getfjy write ffjypath;
@@ -45,31 +45,31 @@ type
     procedure Execute; override;
   public
     constructor Create(tasken:taskentry);
-    constructor Destroy;
+    Destructor Destroy; override;
   end;
   TForm2 = class(TForm)
     Label1: TLabel;
-    fastdir: TEdit;
     Label2: TLabel;
-    fjydir: TEdit;
     Label3: TLabel;
-    dbfdir: TEdit;
     tran_start: TButton;
     tran_stop: TButton;
-    dlgOpen1: TOpenDialog;
-    btn1: TBitBtn;
-    btn2: TBitBtn;
-    btn3: TBitBtn;
     mmo1: TMemo;
+    lbl1: TLabel;
+    set_btn1: TButton;
+    lbl2: TLabel;
+    lbl3: TLabel;
+    lbl4: TLabel;
+    freq_1: TLabel;
+    lbl5: TLabel;
     procedure tran_startClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure btn1Click(Sender: TObject);
-    procedure btn2Click(Sender: TObject);
-    procedure btn3Click(Sender: TObject);
     procedure tran_stopClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure set_btn1Click(Sender: TObject);
   private
     { Private declarations }
   public
+    entry1:TStringList;
     { Public declarations }
   end;
 
@@ -77,40 +77,91 @@ var
   Form2: TForm2;
   mythread:TaskRunThread;
   g_entry:TaskEntry;
+  setmod:Tsettaskentry;
 
 implementation
 
 {$R *.dfm}
 
-procedure TForm2.btn1Click(Sender: TObject);
-begin
-  dlgOpen1.Title:='选择fast目录';
-  if dlgOpen1.Execute then fastdir.Text:=TPath.GetDirectoryName(dlgOpen1.FileName);
-end;
-
-procedure TForm2.btn2Click(Sender: TObject);
-begin
-  dlgOpen1.Title:='选择fjy目录';
-  if dlgOpen1.Execute then fjydir.Text:=TPath.GetDirectoryName(dlgOpen1.FileName);
-end;
-
-procedure TForm2.btn3Click(Sender: TObject);
-begin
-  dlgOpen1.Title:='选择show2003目录';
-  if dlgOpen1.Execute then dbfdir.Text:=TPath.GetDirectoryName(dlgOpen1.FileName);
-
-end;
 
 procedure TForm2.FormCreate(Sender: TObject);
 begin
   g_entry:=TaskEntry.Create;
+  entry1:=TStringList.Create;
+  if LocaleFileExists('entry.ini') then entry1.LoadFromFile('entry.ini');
+  if entry1.Count=0 then
+  begin
+    lbl2.Caption:='';
+    lbl3.Caption:='';
+    lbl4.Caption:='';
+    lbl5.Caption:='';
+    tran_start.Enabled:=False;
+  end
+  else
+  begin
+    g_entry.fast:=entry1.Values['fast'];
+    g_entry.fjy:= entry1.Values['fjy'];
+    g_entry.show:= entry1.Values['dbf'];
+    g_entry.freg:=StrToInt(entry1.Values['freq']);
+    lbl2.Caption:=entry1.Values['fast'];
+    lbl3.Caption:=entry1.Values['fjy'];
+    lbl4.Caption:=entry1.Values['dbf'];
+    lbl5.Caption:=entry1.Values['freq'];
+    tran_start.Enabled:=True;
+  end;
+  tran_stop.Enabled:=False;
+end;
+
+procedure TForm2.FormDestroy(Sender: TObject);
+begin
+// g_entry.logger.Free;
+ entry1.Free;
+ g_entry.Free;
+end;
+
+procedure TForm2.set_btn1Click(Sender: TObject);
+begin
+  setmod:=Tsettaskentry.Create(Application);
+  setmod.Visible:=False;
+  setmod.ShowModal;
+  if setmod.isok then
+  begin
+    if entry1.Count=0 then
+    begin
+      entry1.Add('fast='+setmod.fast);
+      entry1.Add('fjy='+setmod.fjy);
+      entry1.Add('dbf='+setmod.dbfd);
+      entry1.Add('freq='+setmod.frg);
+    end
+    else
+    begin
+      entry1.Values['fast']:=setmod.fast;
+      entry1.Values['fjy']:=setmod.fjy;
+      entry1.Values['dbf']:=setmod.dbfd;
+      entry1.Values['freq']:=setmod.frg;
+    end;
+    g_entry.fast:=entry1.Values['fast'];
+    g_entry.fjy:= entry1.Values['fjy'];
+    g_entry.show:= entry1.Values['dbf'];
+    g_entry.freg:=StrToInt(entry1.Values['freq']);
+    entry1.SaveToFile('entry.ini');
+    lbl2.Caption:=entry1.Values['fast'];
+    lbl3.Caption:=entry1.Values['fjy'];
+    lbl4.Caption:=entry1.Values['dbf'];
+    lbl5.Caption:=entry1.Values['freq'];
+    tran_start.Enabled:=True;
+  end;
+  setmod.Free;
 end;
 
 procedure TForm2.tran_startClick(Sender: TObject);
 begin
-  g_entry.fast:=Trim(fastdir.Text);
+{  g_entry.fast:=Trim(fastdir.Text);
   g_entry.fjy:=Trim(fjydir.Text);
-  g_entry.show:=Trim(dbfdir.Text);
+  g_entry.show:=Trim(dbfdir.Text); }
+  //g_entry.freg:=2;
+  tran_stop.Enabled:=True;
+  tran_start.Enabled:=False;
   mythread:=TaskRunThread.Create(g_entry);
   mythread.Start;
 end;
@@ -120,6 +171,8 @@ begin
   if mythread<>nil then
      mythread.Terminate;
   mmo1.Lines.Assign(g_entry.logger);
+  tran_stop.Enabled:=False;
+  tran_start.Enabled:=True;
 end;
 
 { TaskEntry }
@@ -127,11 +180,13 @@ end;
 constructor TaskEntry.Create;
 begin
   logger:=tstringlist.Create;
+  inherited;
 end;
 
-constructor TaskEntry.Destory;
+Destructor TaskEntry.Destroy;
 begin
-  logger.Free;
+  Self.logger.Free;
+  inherited;
 end;
 
 function TaskEntry.getfast: string;
@@ -255,17 +310,22 @@ procedure TaskRunThread.convertMktdtRecord2Map(rec: String);
 var
 sl1:tstringlist;
 obj:tarrayex<variant>;
-s1,type1:string;
+s1,type1,tmp:string;
 i:Integer;
 begin
-  if Trim(rec)='' then Exit;
+  tmp:=Trim(rec);
+  if tmp='' then Exit;
   sl1:=TStringList.Create;
   sl1.StrictDelimiter:=True;
   sl1.Delimiter:='|';
-  sl1.DelimitedText:=rec;
+  sl1.DelimitedText:=tmp;
   for I := 0 to sl1.Count-1 do sl1[i]:=Trim(sl1[i]);
   type1:=sl1[0];
-  if type1='TRAILER' then Exit;
+  if type1='TRAILER' then
+     begin
+       sl1.Free;
+       Exit;
+     end;
   obj.SetLen(30);
   if type1='MD001' then
     begin
@@ -339,19 +399,21 @@ begin
   inherited Create(True);
 end;
 
-constructor TaskRunThread.Destroy;
+destructor TaskRunThread.Destroy;
 begin
   Self.T1IOPVMap.Free;
   Self.IOPVMap.Free;
   Self.datamap.Free;
+  inherited;
 end;
 
 procedure TaskRunThread.Execute;
 var
-start,hlong,h1,h2,h3,j,k,l:integer;
+start,hlong,h1,h2,h3,h4,i,j,k,l:integer;
 begin
   inherited;
   FreeOnTerminate:=True;
+  i:=0;
   while NOT self.Terminated do
   begin
      try
@@ -368,11 +430,13 @@ begin
          l:=100;
          k:=TExtFuns.IfThen((j>0),j,l);
          sleep(k);
-{         Synchronize(procedure
+         h4:=gettickcount;
+         i:=i+1;
+         Synchronize(procedure
                      begin
-                       form2.mmo1.Lines.Add(Format('三段使用时间分别为：%d,%d,%d，总时间为%d',[h1-start,h2-h1,h3-h2,hlong]))
+                       form2.lbl1.Caption:=Format('%d:三段使用时间分别为：%d,%d,%d，总时间为%d,%d',[i,h1-start,h2-h1,h3-h2,hlong,h4-start])
                      end);
-}       end;
+       end;
      except on E: Exception do self.entry.logger.Add(e.Message)
      end;
   end;
@@ -469,6 +533,7 @@ begin
    obj[12]:=Copy(s1,3,1);
    obj[14]:=Copy(s1,2,1);
    Result:=firstRecValFormat(obj);
+   obj:=nil;
    stl.Free;
 end;
 
@@ -503,8 +568,8 @@ begin
   write1.wirteStream2File(Self.entry.show);
   Self.T1IOPVMap.Clear;
   Self.IOPVMap.Clear;
-  for st1 in stl do Self.datamap.Items[st1]:=nil;
-  Self.datamap.Clear;
+//  for st1 in stl do Self.datamap.Items[st1]:=nil;
+//  Self.datamap.Clear;
   stl.Free;
   write1.Free;
 end;
@@ -574,6 +639,7 @@ begin
         Self.datamap.AddOrSetValue('000000',obj1);
         Self.convertMktdtRecord2Map(szRecord.DelimitedText);
         Self.convertMktdtRecord2Map(agRecord.DelimitedText);
+        Self.convertMktdtRecord2Map(lin);
       end;
     else
       if i=183 then
@@ -582,6 +648,9 @@ begin
     end;
   end;
   flines.Free;
+{  szRecord.Clear;
+  agRecord.Clear;
+  enRecord.Clear;}
   szRecord.Free;
   agRecord.Free;
   enRecord.Free;
