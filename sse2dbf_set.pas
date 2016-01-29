@@ -77,6 +77,10 @@ end;
 procedure Tsettaskentry.FormShow(Sender: TObject);
 begin
    isok:=False;
+   fastdir.Text:=Self.fast;
+   fjydir.Text:=fjy;
+   dbfdir.Text:=dbfd;
+   freq_set.Text:=frg;
 end;
 
 end.
