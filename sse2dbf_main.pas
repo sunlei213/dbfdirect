@@ -70,6 +70,7 @@ type
     { Private declarations }
   public
     entry1:TStringList;
+    inifile:string;
     { Public declarations }
   end;
 
@@ -88,7 +89,8 @@ procedure TForm2.FormCreate(Sender: TObject);
 begin
   g_entry:=TaskEntry.Create;
   entry1:=TStringList.Create;
-  if LocaleFileExists('entry.ini') then entry1.LoadFromFile('entry.ini');
+  inifile:=TPath.GetFullPath('entry.ini');
+  if FileExists(inifile) then entry1.LoadFromFile(inifile);
   if entry1.Count=0 then
   begin
     lbl2.Caption:='';
@@ -123,6 +125,20 @@ procedure TForm2.set_btn1Click(Sender: TObject);
 begin
   setmod:=Tsettaskentry.Create(Application);
   setmod.Visible:=False;
+  if entry1.Count=0 then
+  begin
+    setmod.fast:='';
+    setmod.fjy:='';
+    setmod.dbfd:='';
+    setmod.frg:='';
+  end
+  else
+  begin
+    setmod.fast:=entry1.Values['fast'];
+    setmod.fjy:=entry1.Values['fjy'];
+    setmod.dbfd:=entry1.Values['dbf'];
+    setmod.frg:=entry1.Values['freq'];
+  end;
   setmod.ShowModal;
   if setmod.isok then
   begin
@@ -144,7 +160,7 @@ begin
     g_entry.fjy:= entry1.Values['fjy'];
     g_entry.show:= entry1.Values['dbf'];
     g_entry.freg:=StrToInt(entry1.Values['freq']);
-    entry1.SaveToFile('entry.ini');
+    entry1.SaveToFile(inifile);
     lbl2.Caption:=entry1.Values['fast'];
     lbl3.Caption:=entry1.Values['fjy'];
     lbl4.Caption:=entry1.Values['dbf'];
@@ -437,8 +453,19 @@ begin
                        form2.lbl1.Caption:=Format('%d:三段使用时间分别为：%d,%d,%d，总时间为%d,%d',[i,h1-start,h2-h1,h3-h2,hlong,h4-start])
                      end);
        end;
-     except on E: Exception do self.entry.logger.Add(e.Message)
-     end;
+     except on E: Exception do
+       begin
+       self.entry.logger.Add(e.Message);
+       Synchronize(procedure
+                   begin
+                     Form2.mmo1.Lines.Assign(g_entry.logger);
+                     Form2.tran_start.Enabled:=True;
+                     Form2.tran_stop.Enabled:=False;
+                   end
+                   );
+       Exit;
+       end;
+       end;
   end;
 end;
 
