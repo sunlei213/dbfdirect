@@ -7,11 +7,13 @@ type
  end;
 
  login=record
-  SenderCompID:array[0..19] of ansichar;
-  TargetCompID:array[0..19] of ansichar;
-  HeartBtInt:UInt32;
-  Password:array[0..15] of ansichar;
-  DefaultApplVerID:array[0..31] of ansichar;
+  case integer of
+  0:(SenderCompID:array[0..19] of ansichar;
+    TargetCompID:array[0..19] of ansichar;
+    HeartBtInt:UInt32;
+    Password:array[0..15] of ansichar;
+    DefaultApplVerID:array[0..31] of ansichar);
+  1:(by:array [0..91] of byte);
   end;
 
  Channel_Heartbeat=record

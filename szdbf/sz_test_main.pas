@@ -26,7 +26,14 @@ implementation
 {$R *.dfm}
 
 procedure TMYform.btn1Click(Sender: TObject);
+type
+ mysam=record
+   case Integer of
+   0:(s1:UInt32);
+   1:(s2:array[0..3] of Byte);
+ end;
 var
+sl:mysam;
 lg:login;
 chk:UInt32;
 begin
@@ -35,6 +42,7 @@ begin
    lg.HeartBtInt:=30;
    lg.Password:='sunlei';
    lg.DefaultApplVerID:='1.00';
+   sl.s1:=30;
    chk:=check<login>(lg);
 end;
 
