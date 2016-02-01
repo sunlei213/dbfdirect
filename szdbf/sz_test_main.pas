@@ -14,6 +14,8 @@ type
     btn2: TButton;
     mmo1: TMemo;
     procedure btn1Click(Sender: TObject);
+    procedure btn2Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
     function check<T>(value:T):UInt32;
@@ -32,7 +34,7 @@ type
 var
   MYform: TMYform;
   myth1:tmythread;
-
+  tm:TMemoryStream;
 implementation
 
 {$R *.dfm}
@@ -50,6 +52,8 @@ begin
      sl.s1:=30;
      myth1:=TMyThread.Create(True);
      myth1.Start;
+     btn1.Enabled:=False;
+     btn2.Enabled:=True;
 end;
 
 function TMYform.check<T>(value: T): UInt32;
@@ -71,56 +75,74 @@ end;
 procedure TMyThread.Execute;
 var
 st:string;
-i,j:integer;
-tby:TIdBytes;
+i,j,k,l:integer;
+tby,t_heat:TIdBytes;
 lg:login;
 chk:UInt32;
-hd:head;
 login_frm:Tlogin;
 begin
   inherited;
   FreeOnTerminate := True;
+  SetLength(t_heat,12);
+  FillBytes(t_heat,12,0);
+  t_heat[3]:=3;
+  t_heat[11]:=3;
   i:=0;
   MYform.idtcpclnt1.Host:='127.0.0.1';
   MYform.idtcpclnt1.Port:=8016;
   try
-    MYform.idtcpclnt1.Connect;
-    hd.MsgType:=1;
-    hd.BodyLength:=92;
-    strtospace('realtime1',Length(lg.SenderCompID),lg.SenderCompID);
+
+    lg.l_head.MsgType:=a32_l2h(1);
+    lg.l_head.BodyLength:=a32_l2h(92);
+    strtospace('resend',Length(lg.SenderCompID),lg.SenderCompID);
     strtospace('mdgw11',Length(lg.TargetCompID),lg.TargetCompID);
-    strtospace('',Length(lg.Password),lg.Password);
+    strtospace('mdgw11',Length(lg.Password),lg.Password);
+    lg.HeartBtInt:=a32_l2h(15);
     strtospace('1.00',Length(lg.DefaultApplVerID),lg.DefaultApplVerID);
     chk:=MYform.check<login>(lg);
-    login_frm.TL_head:=hd;
     login_frm.TL_body:=lg;
-    login_frm.TL_Check:=chk;
-    MYform.idtcpclnt1.Socket.DefStringEncoding:=IdGlobal.IndyTextEncoding_UTF8();
-    MYform.idtcpclnt1.Socket.WriteDirect(tranbyte<Tlogin>(login_frm),SizeOf(login_frm));
+    login_frm.TL_Check:=a32_l2h(chk);
+    tby:=RawToBytes(login_frm,SizeOf(login_frm));
+    i:=SizeOf(login_frm);
+    MYform.idtcpclnt1.Connect;
+//    MYform.idtcpclnt1.Socket.DefStringEncoding:=IdGlobal.IndyTextEncoding_UTF8();
+    MYform.idtcpclnt1.Socket.Write(tby);
+    l:=0;
     try
       begin
-        while True do
+        while not Self.Terminated do
         begin
          MYform.idtcpclnt1.Socket.CheckForDataOnSource;
  //            st:=MYform.idtcpclnt1.Socket.ReadLn;
           if not MYform.idtcpclnt1.Socket.InputBufferIsEmpty then
             begin
               j:= MYform.idtcpclnt1.Socket.InputBuffer.Size;
-//              setlength(tby,j);
+              setlength(tby,0);
               MYform.idtcpclnt1.Socket.ReadBytes(tby,j);
+              tm.Write(TBy[0],length(tby));
+              MYform.idtcpclnt1.IOHandler.CheckForDataOnSource(1);
+              if MYform.idtcpclnt1.Socket.InputBufferIsEmpty then
+                 MYform.mmo1.Lines.Add(inttostr(l)+':'+'buffer空了');
 //              st:=ansistring(MYform.idtcpclnt1.Socket.readln);
 //              tby:=tencoding.Default.GetBytes(st);
+{              for k := 0 to j-1 do
+                if tby[k]=0 then tby[k]:=32;
               st:=tencoding.Default.GetString(tbytes(tby));
-              MYform.mmo1.Lines.Add(st);
-              i:=0
+              MYform.mmo1.Lines.Add(inttostr(l)+':'+st);
+             i:=0;
+}              l:=l+1;
+               MYform.mmo1.Lines.Add(Format('%d:内存流大小：%d',[l,tm.Size]));
             end
           else
             begin
-              sleep(20);
+              sleep(40);
               inc(i);
               Application.ProcessMessages;
               if i mod 300 =0 then
-              MYform.idtcpclnt1.Socket.WriteLn('心跳');
+              begin
+              i:=0;
+              MYform.idtcpclnt1.Socket.WriteDirect(t_heat);
+              end;
             end;
           if self.Terminated then break;
         end;
@@ -156,6 +178,20 @@ begin
   SetLength(tb1,j);
   CopyMemory(@tb1[0],@value,j);
   Result:=tb1;
+end;
+
+procedure TMYform.btn2Click(Sender: TObject);
+begin
+  if myth1<>nil then
+   myth1.Terminate;
+  btn1.Enabled:=True;
+  btn2.Enabled:=False;
+  tm.SaveToFile('d:\sl.dat');
+end;
+
+procedure TMYform.FormCreate(Sender: TObject);
+begin
+ tm:=TMemoryStream.Create;
 end;
 
 end.

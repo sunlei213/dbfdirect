@@ -3,7 +3,7 @@ object MYform: TMYform
   Top = 0
   Caption = 'MYform'
   ClientHeight = 282
-  ClientWidth = 418
+  ClientWidth = 690
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,6 +11,7 @@ object MYform: TMYform
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object btn1: TButton
@@ -29,15 +30,16 @@ object MYform: TMYform
     Height = 25
     Caption = 'btn1'
     TabOrder = 1
-    OnClick = btn1Click
+    OnClick = btn2Click
   end
   object mmo1: TMemo
-    Left = 32
+    Left = 24
     Top = 16
-    Width = 361
+    Width = 658
     Height = 193
     Lines.Strings = (
       'mmo1')
+    ScrollBars = ssBoth
     TabOrder = 2
   end
   object idtcpclnt1: TIdTCPClient

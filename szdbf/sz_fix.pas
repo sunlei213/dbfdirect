@@ -2,31 +2,48 @@ unit sz_fix;
 
 interface
 type
- head=record
+ uin16=packed record
+   case Integer of
+   0:(i16:UInt16);
+   1:(by16:array [0..1] of Byte);
+ end;
+ uin32=packed record
+   case Integer of
+   0:(i32:UInt32);
+   1:(by32:array [0..3] of Byte);
+ end;
+ uin64=packed record
+   case Integer of
+   0:(i64:UInt64);
+   1:(by64:array [0..7] of Byte);
+ end;
+ head=packed record
   MsgType,BodyLength:UInt32; //BodyLength=内容减去校验位，校验位是整型，4位
  end;
 
- login=record
-  case integer of
-  0:(SenderCompID:array[0..19] of ansichar;
+ login= packed record
+//  case integer of
+//  0:
+    l_head:head;
+    SenderCompID:array[0..19] of ansichar;
     TargetCompID:array[0..19] of ansichar;
     HeartBtInt:UInt32;
     Password:array[0..15] of ansichar;
-    DefaultApplVerID:array[0..31] of ansichar);
-  1:(by:array [0..91] of byte);
+    DefaultApplVerID:array[0..31] of ansichar;
+//  1:(by:array [0..91] of byte);
   end;
 
- Channel_Heartbeat=record
+ Channel_Heartbeat=packed record
   ChannelNo:UInt16;
   ApplLastSeqNum:UInt64;
   EndOfChannel:boolean;
  end;
- Tlogin=record
-  case Integer of
-  0:(TL_head:head;TL_body:login;TL_Check:UInt32);
-  1:(By:array[0..103] of Byte);
+ Tlogin=packed record
+//  case Integer of
+  TL_body:login;TL_Check:UInt32;
+//  1:(By:array[0..103] of Byte);
  end;
- stock_data=record
+ stock_data=packed record
   OrigTime:uint64;{
                   本地时间戳
           YYYYMMDDHHMMSSsss（毫秒），
@@ -60,7 +77,7 @@ type
   NoMDEntries:uint32; //  行情条目个数or统计量指标样本个数
  end;
 
- MDEntry=record
+ MDEntry=packed record
   MDEntryType:array[0..1] of ansichar;{
                                        行情条目类别
                      0=买入
@@ -90,7 +107,12 @@ type
   NoOrders:integer;  //价位揭示委托笔数  为 0 表示不揭示
  end;
  function strtospace(sl:string;Leng:Integer;var outchar:array of AnsiChar):Boolean;
-
+ function i16_l2h(v:UInt16):UInt16;
+ function i32_l2h(v:Uint32):UInt32;
+ function i64_l2h(v:UInt64):UInt64;
+ function a16_l2h(v:UInt16):UInt16;
+ function a32_l2h(v:Uint32):UInt32;
+ function a64_l2h(v:UInt64):UInt64;
 // cks += (uint32)buf[ idx++ ],return chs%256;
 
   //Heartbeat=head+Checksum
@@ -102,7 +124,7 @@ implementation
   I: Integer;
   begin
     try
-    FillChar(outchar,leng,20);
+    FillChar(outchar,leng,32);
     if Length(sl)>0 then
     for I := 0 to Length(sl)-1 do
       begin
@@ -113,5 +135,74 @@ implementation
     result:=False;
     end;
   end;
+function i16_l2h(v:UInt16):UInt16;
+var
+i,j:uin16;
+begin
+  i.i16:=v;
+  j.by16[0]:=i.by16[1];
+  j.by16[1]:=i.by16[0];
+  Result:=j.i16;
+end;
+function i32_l2h(v:Uint32):UInt32;
+var
+i,j:uin32;
+k:Integer;
+begin
+  i.i32:=v;
+  for k := 0 to 3 do
+    j.by32[k]:=i.by32[3-k];
+  Result:=j.i32;
+end;
 
+function i64_l2h(v:UInt64):UInt64;
+var
+i,j:uin64;
+k:Integer;
+begin
+  i.i64:=v;
+  for k := 0 to 7 do
+    j.by64[k]:=i.by64[7-k];
+  Result:=j.i64;
+end;
+
+function a16_l2h(v:UInt16):UInt16;
+begin
+   asm
+     xchg ah,al
+     mov result,ax
+   end;
+end;
+
+
+function a32_l2h(v:Uint32):UInt32;
+begin
+   asm
+     bswap eax
+     mov result,eax
+   end;
+end;
+
+function a64_l2h(v:UInt64):UInt64;
+begin
+{$IF Defined(CPUX86)}
+asm
+ MOV     EDX,[DWORD PTR EBP + 12]
+ MOV     EAX,[DWORD PTR EBP + 8]
+ BSWAP   EAX
+ XCHG    EAX,EDX
+ BSWAP   EAX
+ mov     [DWORD PTR EBP - 8],eax
+ mov     [DWORD PTR EBP - 4],edx
+end;
+{$ELSEIF Defined(CPUX64)}
+asm
+  MOV    RAX,RCX
+  BSWAP  RAX
+  mov    result,RAX
+end;
+{$ELSE}
+  {$Message Fatal 'Unsupported architecture'}
+{$ENDIF}
+end;
 end.
