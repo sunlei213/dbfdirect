@@ -13,20 +13,39 @@ object MYform: TMYform
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
-  object lbl1: TLabel
-    Left = 64
-    Top = 40
-    Width = 16
-    Height = 13
-    Caption = 'lbl1'
-  end
   object btn1: TButton
-    Left = 136
-    Top = 200
+    Left = 80
+    Top = 249
     Width = 75
     Height = 25
     Caption = 'btn1'
     TabOrder = 0
     OnClick = btn1Click
+  end
+  object btn2: TButton
+    Left = 192
+    Top = 249
+    Width = 75
+    Height = 25
+    Caption = 'btn1'
+    TabOrder = 1
+    OnClick = btn1Click
+  end
+  object mmo1: TMemo
+    Left = 32
+    Top = 16
+    Width = 361
+    Height = 193
+    Lines.Strings = (
+      'mmo1')
+    TabOrder = 2
+  end
+  object idtcpclnt1: TIdTCPClient
+    ConnectTimeout = 0
+    IPVersion = Id_IPv4
+    Port = 0
+    ReadTimeout = -1
+    Left = 376
+    Top = 240
   end
 end

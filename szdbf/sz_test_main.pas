@@ -4,12 +4,15 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,sz_fix, Vcl.StdCtrls;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,sz_fix, Vcl.StdCtrls,IdGlobal,
+  IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient;
 
 type
   TMYform = class(TForm)
     btn1: TButton;
-    lbl1: TLabel;
+    idtcpclnt1: TIdTCPClient;
+    btn2: TButton;
+    mmo1: TMemo;
     procedure btn1Click(Sender: TObject);
   private
     { Private declarations }
@@ -18,8 +21,15 @@ type
     { Public declarations }
   end;
 
+  TMyThread = class(TThread)
+  protected
+    procedure Execute; override;
+    procedure showmsg(st:string);
+  end;
+
 var
   MYform: TMYform;
+  myth1:tmythread;
 
 implementation
 
@@ -59,4 +69,70 @@ begin
   Result:=Result mod 256;
 end;
 
+
+{ TMyThread }
+
+procedure TMyThread.Execute;
+var
+st:string;
+i,j:integer;
+tby:tidbytes;
+begin
+  inherited;
+  FreeOnTerminate := True;
+  i:=0;
+  MYform.idtcpclnt1.Host:='127.0.0.1';
+  MYform.idtcpclnt1.Port:=9999;
+  try
+    MYform.idtcpclnt1.Connect;
+//    MYform.idtcpclnt1.Socket.DefStringEncoding:=indytextencoding_osdefault();
+    try
+      begin
+        while True do
+        begin
+         MYform.idtcpclnt1.Socket.CheckForDataOnSource;
+ //            st:=MYform.idtcpclnt1.Socket.ReadLn;
+          if not MYform.idtcpclnt1.Socket.InputBufferIsEmpty then
+            begin
+              j:= MYform.idtcpclnt1.Socket.InputBuffer.Size;
+//              setlength(tby,j);
+              MYform.idtcpclnt1.Socket.ReadBytes(tby,j);
+//              st:=ansistring(MYform.idtcpclnt1.Socket.readln);
+//              tby:=tencoding.Default.GetBytes(st);
+              st:=tencoding.Default.GetString(tbytes(tby));
+              MYform.mmo1.Lines.Add(st);
+              i:=0
+            end
+          else
+            begin
+              sleep(20);
+              inc(i);
+              Application.ProcessMessages;
+              if i mod 300 =0 then
+              MYform.idtcpclnt1.Socket.WriteLn('心跳');
+            end;
+          if self.Terminated then break;
+        end;
+      end;
+      finally
+      begin
+        MYform.idtcpclnt1.Disconnect;
+        Synchronize(procedure
+                     begin
+                     showmessage('进程结束');
+                     end);
+      end;
+    end;
+  except
+  Synchronize(procedure
+              begin
+              ShowMessage('没有连接上主机');
+              end);
+  end;
+end;
+
+procedure TMyThread.showmsg(st: string);
+begin
+  ShowMessage(st);
+end;
 end.
