@@ -21,7 +21,11 @@ type
   ApplLastSeqNum:UInt64;
   EndOfChannel:boolean;
  end;
-
+ Tlogin=record
+  case Integer of
+  0:(TL_head:head;TL_body:login;TL_Check:UInt32);
+  1:(By:array[0..103] of Byte);
+ end;
  stock_data=record
   OrigTime:uint64;{
                   本地时间戳
@@ -85,12 +89,29 @@ type
               为 0 表示不揭示}
   NoOrders:integer;  //价位揭示委托笔数  为 0 表示不揭示
  end;
+ function strtospace(sl:string;Leng:Integer;var outchar:array of AnsiChar):Boolean;
 
 // cks += (uint32)buf[ idx++ ],return chs%256;
 
   //Heartbeat=head+Checksum
 
-implementation
 
+implementation
+  function strtospace(sl:string;Leng:Integer;var outchar:array of AnsiChar):Boolean;
+  var
+  I: Integer;
+  begin
+    try
+    FillChar(outchar,leng,20);
+    if Length(sl)>0 then
+    for I := 0 to Length(sl)-1 do
+      begin
+        outchar[i]:=AnsiChar(sl[i+1]);
+      end;
+    Result:=True;
+    except
+    result:=False;
+    end;
+  end;
 
 end.

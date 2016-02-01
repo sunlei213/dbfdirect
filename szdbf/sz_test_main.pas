@@ -22,6 +22,8 @@ type
   end;
 
   TMyThread = class(TThread)
+  private
+    function tranbyte<T>(value:T):TIdBytes;
   protected
     procedure Execute; override;
     procedure showmsg(st:string);
@@ -44,16 +46,10 @@ type
  end;
 var
 sl:mysam;
-lg:login;
-chk:UInt32;
 begin
-   lg.SenderCompID:='realtim1';
-   lg.TargetCompID:='at001';
-   lg.HeartBtInt:=30;
-   lg.Password:='sunlei';
-   lg.DefaultApplVerID:='1.00';
-   sl.s1:=30;
-   chk:=check<login>(lg);
+     sl.s1:=30;
+     myth1:=TMyThread.Create(True);
+     myth1.Start;
 end;
 
 function TMYform.check<T>(value: T): UInt32;
@@ -76,16 +72,31 @@ procedure TMyThread.Execute;
 var
 st:string;
 i,j:integer;
-tby:tidbytes;
+tby:TIdBytes;
+lg:login;
+chk:UInt32;
+hd:head;
+login_frm:Tlogin;
 begin
   inherited;
   FreeOnTerminate := True;
   i:=0;
   MYform.idtcpclnt1.Host:='127.0.0.1';
-  MYform.idtcpclnt1.Port:=9999;
+  MYform.idtcpclnt1.Port:=8016;
   try
     MYform.idtcpclnt1.Connect;
-//    MYform.idtcpclnt1.Socket.DefStringEncoding:=indytextencoding_osdefault();
+    hd.MsgType:=1;
+    hd.BodyLength:=92;
+    strtospace('realtime1',Length(lg.SenderCompID),lg.SenderCompID);
+    strtospace('mdgw11',Length(lg.TargetCompID),lg.TargetCompID);
+    strtospace('',Length(lg.Password),lg.Password);
+    strtospace('1.00',Length(lg.DefaultApplVerID),lg.DefaultApplVerID);
+    chk:=MYform.check<login>(lg);
+    login_frm.TL_head:=hd;
+    login_frm.TL_body:=lg;
+    login_frm.TL_Check:=chk;
+    MYform.idtcpclnt1.Socket.DefStringEncoding:=IdGlobal.IndyTextEncoding_UTF8();
+    MYform.idtcpclnt1.Socket.WriteDirect(tranbyte<Tlogin>(login_frm),SizeOf(login_frm));
     try
       begin
         while True do
@@ -135,4 +146,16 @@ procedure TMyThread.showmsg(st: string);
 begin
   ShowMessage(st);
 end;
+function TMyThread.tranbyte<T>(value: T): TIdBytes;
+var
+ tb1:TIdBytes;
+ j:Integer;
+begin
+  j:=SizeOf(value);
+  Result:=0;
+  SetLength(tb1,j);
+  CopyMemory(@tb1[0],@value,j);
+  Result:=tb1;
+end;
+
 end.
