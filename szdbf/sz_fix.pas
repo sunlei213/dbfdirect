@@ -20,7 +20,13 @@ type
  head=packed record
   MsgType,BodyLength:UInt32; //BodyLength=内容减去校验位，校验位是整型，4位
  end;
-
+ login_body=packed record
+    SenderCompID:array[0..19] of ansichar;
+    TargetCompID:array[0..19] of ansichar;
+    HeartBtInt:UInt32;
+    Password:array[0..15] of ansichar;
+    DefaultApplVerID:array[0..31] of ansichar;
+ end;
  login= packed record
 //  case integer of
 //  0:
@@ -105,6 +111,18 @@ type
                         价位总委托笔数
               为 0 表示不揭示}
   NoOrders:integer;  //价位揭示委托笔数  为 0 表示不揭示
+ end;
+ wt_l2=packed record
+   ChannelNo:uint16;//  频道代码
+   ApplSeqNum:UInt64;//消息记录号 从 1 开始计数
+   MDStreamID:array[0..2] of AnsiChar;//  行情类别
+   SecurityID:array[0..7] of AnsiChar;//  证券代码
+   SecurityIDSource:array[0..3] of AnsiChar;//  证券代码源
+   Price:uint64;  //委托价格18(6);
+   OrderQty:UInt64;//  委托数量
+   Side:AnsiChar;  //买卖方向 1=买,2=卖,G=借入,F=出借
+   TransactTime:UInt64;//  委托时间
+   OrdType:AnsiChar;//订单类别 1=市价,2=限价,U=本方最优
  end;
  function strtospace(sl:string;Leng:Integer;var outchar:array of AnsiChar):Boolean;
  function i16_l2h(v:UInt16):UInt16;
