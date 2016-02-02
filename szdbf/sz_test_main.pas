@@ -25,7 +25,7 @@ type
 
   TMyThread = class(TThread)
   private
-    function tranbyte<T>(value:T):TIdBytes;
+    function readbuff<T>(AClient: TIdTCPClient;var value:T;msgtype,buff_len:UInt32):Boolean;
   protected
     procedure Execute; override;
     procedure showmsg(st:string);
@@ -168,16 +168,34 @@ procedure TMyThread.showmsg(st: string);
 begin
   ShowMessage(st);
 end;
-function TMyThread.tranbyte<T>(value: T): TIdBytes;
+function TMyThread.readbuff<T>(AClient: TIdTCPClient;var value:T;msgtype,buff_len: UInt32): Boolean;
 var
  tb1:TIdBytes;
- j:Integer;
+ j,check:UInt32;
+ trans:uin32;
+  I: Integer;
 begin
-  j:=SizeOf(value);
-  Result:=0;
-  SetLength(tb1,j);
-  CopyMemory(@tb1[0],@value,j);
-  Result:=tb1;
+  AClient.IOHandler.ReadBytes(tb1,buff_len,False);
+  Result:=false;
+  if SizeOf(value)<>buff_len then Exit;
+  check:=0;
+  trans.i32:=msgtype;
+  for I := 0 to 3 do
+     check:=check+trans.by32[i];
+  trans.i32:=buff_len;
+  for I := 3 to 0 do
+    check:=check+trans.by32[i];
+  for I := 0 to buff_len-1 do
+    check:=check+tb1[i];
+  j:=check mod 256;
+  check:=AClient.IOHandler.ReadInt32();
+  if j<>a32_l2h(check) then Exit;
+  try
+  BytesToRaw(tb1,value,buff_len);
+  Result:=True;
+  except
+  Result:=False;
+  end;
 end;
 
 procedure TMYform.btn2Click(Sender: TObject);
