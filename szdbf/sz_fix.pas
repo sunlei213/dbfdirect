@@ -67,15 +67,15 @@ type
                                            S=启动（开市前）
                                            O=开盘集合竞价
                                            T=连续竞价
-                       B=休市
-                       C=收盘集合竞价
-                       E=已闭市
-                       H=临时停牌
-                       A=盘后交易
-                       V=波动性中断
-                       第 1 位：
-                       0=正常状态
-                       1=全天停牌}
+                                           B=休市
+                                           C=收盘集合竞价
+                                           E=已闭市
+                                           H=临时停牌
+                                           A=盘后交易
+                                           V=波动性中断
+                                           第 1 位：
+                                           0=正常状态
+                                           1=全天停牌}
   PrevClosePx:uint64;  //昨收价 13(4)
   NumTrades:UInt64;  //成交笔数
   TotalVolumeTrade:UInt64;  //成交总量15(2)
@@ -110,7 +110,7 @@ type
   NumberOfOrders:UInt64;{
                         价位总委托笔数
               为 0 表示不揭示}
-  NoOrders:integer;  //价位揭示委托笔数  为 0 表示不揭示
+  NoOrders:UInt32;  //价位揭示委托笔数  为 0 表示不揭示
  end;
  wt_l2=packed record
    ChannelNo:uint16;//  频道代码
@@ -128,9 +128,9 @@ type
  function i16_l2h(v:UInt16):UInt16;
  function i32_l2h(v:Uint32):UInt32;
  function i64_l2h(v:UInt64):UInt64;
- function a16_l2h(v:UInt16):UInt16;
- function a32_l2h(v:Uint32):UInt32;
- function a64_l2h(v:UInt64):UInt64;
+ function NET2CPU(v:UInt16):UInt16; overload;
+ function NET2CPU(v:Uint32):UInt32; overload;
+ function NET2CPU(v:UInt64):UInt64; overload;
 // cks += (uint32)buf[ idx++ ],return chs%256;
 
   //Heartbeat=head+Checksum
@@ -184,7 +184,7 @@ begin
   Result:=j.i64;
 end;
 
-function a16_l2h(v:UInt16):UInt16;
+function NET2CPU(v:UInt16):UInt16;overload;
 begin
    asm
      xchg ah,al
@@ -193,7 +193,7 @@ begin
 end;
 
 
-function a32_l2h(v:Uint32):UInt32;
+function NET2CPU(v:Uint32):UInt32;overload;
 begin
    asm
      bswap eax
@@ -201,7 +201,7 @@ begin
    end;
 end;
 
-function a64_l2h(v:UInt64):UInt64;
+function NET2CPU(v:UInt64):UInt64;overload;
 begin
 {$IF Defined(CPUX86)}
 asm
