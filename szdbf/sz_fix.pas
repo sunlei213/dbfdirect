@@ -112,6 +112,16 @@ type
               为 0 表示不揭示}
   NoOrders:UInt32;  //价位揭示委托笔数  为 0 表示不揭示
  end;
+ hq_MDEntry=packed record
+  MDEntryType:array[0..1] of ansichar;{行情条目类别
+                        3=当前指数
+                        xa=昨日收盘指数
+                        xb=开盘指数
+                        xc=最高指数
+                        xd=最低指数
+                        xg=合约持仓量}
+  MDEntryPx:UInt64;  //  指数点位18(6)
+ end;
  wt_l2=packed record
    ChannelNo:uint16;//  频道代码
    ApplSeqNum:UInt64;//消息记录号 从 1 开始计数
@@ -124,6 +134,24 @@ type
    TransactTime:UInt64;//  委托时间
    OrdType:AnsiChar;//订单类别 1=市价,2=限价,U=本方最优
  end;
+
+ StockStatus=packed record
+  OrigTime:uint64;{
+                  本地时间戳
+          YYYYMMDDHHMMSSsss（毫秒），
+          YYYY = 0000-9999, MM = 01-12,
+          DD = 01-31, HH = 00-23, MM =
+          00-59, SS = 00-60 (秒)，sss=000-999(毫秒)。}
+  ChannelNo:UInt16; // 频道代码
+  SecurityID:array[0..7] of ansichar;//  证券代码
+  SecurityIDSource:array[0..3] of ansichar; {证券代码源
+                        102=深圳证券交易所
+                        103=香港交易所}
+  FinancialStatus:array[0..7] of ansichar;//  证券状态
+  NoSwitch:UInt32//  开关个数
+ end;
+
+
  function strtospace(sl:string;Leng:Integer;var outchar:array of AnsiChar):Boolean;
  function i16_l2h(v:UInt16):UInt16;
  function i32_l2h(v:Uint32):UInt32;
