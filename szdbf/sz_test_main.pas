@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,sz_fix, Vcl.StdCtrls,IdGlobal,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,sz_fix, Vcl.StdCtrls,IdGlobal,system.Diagnostics,
   IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient;
 
 type
@@ -47,7 +47,9 @@ uses
 
 procedure TMyThread.Execute;
 var
-  i, j, k, endtime: integer;
+  i, k, endtime: integer;
+  j:UInt64;
+  tim:TStopwatch;
   tby, t_heat: TIdBytes;
   lg: login;
   chk, msg_type, body_ln, l: UInt32;
@@ -78,14 +80,14 @@ begin
     login_frm.TL_body := lg;
     login_frm.TL_Check := NET2CPU(chk);
     tby := RawToBytes(login_frm, SizeOf(login_frm));
-    i := SizeOf(login_frm);
     MYform.idtcpclnt1.Connect;
 //    MYform.idtcpclnt1.Socket.DefStringEncoding:=IdGlobal.IndyTextEncoding_UTF8();
     MYform.idtcpclnt1.Socket.Write(tby);
     l := 0;
     i := GetTickCount;
-    j := i;
-    k:=0;
+    k := i;
+    isnodata:=True;
+    tim:=TStopWatch.Create;
     try
       begin
         while not Self.Terminated do
@@ -96,7 +98,7 @@ begin
             if isnodata then
               begin
                 isnodata := False;
-                j := GetTickCount;
+                tim.Start;
               end;
 
             dateIStrue:=make_data(MYform.idtcpclnt1);
@@ -110,10 +112,12 @@ begin
             begin
               k := GetTickCount;
               isnodata := True;
-              j:=k-j;
+              tim.Stop;
+              j:=tim.ElapsedMilliseconds;
+              tim.Reset;
               MYform.mmo1.Lines.Add(Format('%d:buffer空了,耗时%d毫秒', [l, j]));
             end;
-            sleep(100);
+            sleep(10);
             Application.ProcessMessages;
           end;
           endtime := GetTickCount;
@@ -211,7 +215,8 @@ begin
       end;
     390013: //证券实时状态
       begin
-
+        data_make:=TStockStatus.Create(AClient);
+        dataIStrue:=data_make.getdate(body_ln);
       end;
 
   else
