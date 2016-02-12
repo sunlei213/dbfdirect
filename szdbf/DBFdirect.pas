@@ -399,6 +399,7 @@ tmp:Tlist<TDBField>;
 dbfield:TDBField;
 begin
   tmp:=Tlist<TDBfield>.Create;
+
   for I := 0 to self.fields.Count-1 do
     begin
       if i=5 then

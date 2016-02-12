@@ -3,7 +3,7 @@ unit sz_interface;
 interface
 
 uses
-  Generics.Collections, ArrayEx, System.SysUtils, System.Variants, System.Classes,
+  Generics.Collections, ArrayEx, System.SysUtils, System.Variants, System.Classes,system.Math,
   sz_fix, IdGlobal, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient,DBFdirect;
 
 type
@@ -13,7 +13,7 @@ type
   end;
 
   Idata_trans = interface
-    function cover_data:Integer;
+    function cover_data(d_map:TDictionary<string,tarrayex<variant>>;queue:TQueue<tarrayex<Variant>>):Integer;
     function  write_dbf(filename:string):Boolean;
   end;
 
@@ -30,7 +30,7 @@ type
   public
     constructor Create(AClient: TIdTCPClient; i: UInt32);
     function Serial(query: TQueue<tarrayex<Variant>>; body_ln: UInt32): Boolean;
-    function getdate(body_ln: UInt32): Boolean; virtual;
+    function getdate(body_ln: UInt32): Boolean; virtual; abstract;
   end;
 
 
@@ -81,24 +81,34 @@ type
     function getdate(body_ln: UInt32): Boolean; override;
   end;
 
-{ TStockwrite }
+{ TSjshqwrite }
 
-  TStockwrite = class(TInterfacedObject, Idata_trans)
+  TSjshqWrite = class(TInterfacedObject, Idata_trans)
   private
     max_cov_num:Integer;
-    datamap:TDictionary<string,tarrayex<variant>>;
-    myqueue: TQueue<tarrayex<Variant>>;
-    function initHead:TList<TDBField>;virtual;
   protected
 
   public
-    constructor Create(d_map:TDictionary<string,tarrayex<variant>>;queue:TQueue<tarrayex<Variant>>;cover_num:Integer);
+    constructor Create(cover_num:Integer);
     destructor Destroy; override;
-    function cover_data:Integer;virtual;
-    function write_dbf(filename:string):Boolean;virtual;
+    function cover_data(d_map:TDictionary<string,tarrayex<variant>>;queue:TQueue<tarrayex<Variant>>):Integer;
+    function write_dbf(filename:string):Boolean;
 
   end;
 
+{ TSjsxxwrite }
+
+  TSjsxxWrite = class(TInterfacedObject, Idata_trans)
+  private
+    max_cov_num:Integer;
+  protected
+
+  public
+    constructor Create(cover_num:Integer);
+    function cover_data(d_map:TDictionary<string,tarrayex<variant>>;queue:TQueue<tarrayex<Variant>>):Integer;
+    function write_dbf(filename:string):Boolean;
+
+  end;
 
 implementation
 
@@ -117,10 +127,6 @@ begin
   chk := il.by32[3] + il.by32[2] + il.by32[1] + il.by32[0];
 end;
 
-function Tstock.getdate(body_ln: UInt32): Boolean;
-begin
-  ShowMessage('函数未实现');
-end;
 
 procedure Tstock.recvbuff;
 var
@@ -156,7 +162,7 @@ function Tstock_hq.getdate(body_ln: UInt32): Boolean;
 var
   trans1: uin32;
   trans64: uin64;
-  l: Integer;
+  l: UInt32;
   I: Integer;
   m: Integer;
   k: Integer;
@@ -173,7 +179,6 @@ begin
   stock_body.TotalVolumeTrade := NET2CPU(stock_body.TotalVolumeTrade);
   stock_body.TotalValueTrade := NET2CPU(stock_body.TotalValueTrade);
   stock_body.NoMDEntries := NET2CPU(stock_body.NoMDEntries);
-  l := data_size + hq_size * stock_body.NoMDEntries;
   for I := 0 to stock_body.NoMDEntries - 1 do
   begin
     SetLength(tby, 0);
@@ -193,7 +198,6 @@ begin
       for m := 0 to mden_body.NoOrders - 1 do
       begin
         trans64.i64 := AClient.Socket.ReadInt64;
-        inc(l, 8);
           //  st:=st+format('笔数%d：%d',[m,trans64.i64]);
         for k := 7 downto 0 do
           chk := chk + trans64.by64[k];
@@ -217,7 +221,7 @@ end;
 function Tstock_zs.getdate(body_ln: UInt32): Boolean;
 var
   trans1: uin32;
-  l: Integer;
+  l: UInt32;
   I: Integer;
 begin
   trans1.i32 := body_ln;
@@ -232,7 +236,6 @@ begin
   stock_body.TotalVolumeTrade := NET2CPU(stock_body.TotalVolumeTrade);
   stock_body.TotalValueTrade := NET2CPU(stock_body.TotalValueTrade);
   stock_body.NoMDEntries := NET2CPU(stock_body.NoMDEntries);
-  l := data_size + hq_size * stock_body.NoMDEntries;
   for I := 0 to stock_body.NoMDEntries - 1 do
   begin
     SetLength(tby, 0);
@@ -262,7 +265,7 @@ end;
 function Tstock_zsvol.getdate(body_ln: UInt32): Boolean;
 var
   trans1: uin32;
-  l: Integer;
+  l: UInt32;
 begin
   trans1.i32 := body_ln;
   chk := chk + trans1.by32[3] + trans1.by32[2] + trans1.by32[1] + trans1.by32[0];
@@ -294,7 +297,7 @@ function TStockStatus.getdate(body_ln: UInt32): Boolean;
 var
   trans1: uin32;
   trans16: uin16;
-  l: Integer;
+  l: UInt32;
   I: Integer;
 begin
   trans1.i32 := body_ln;
@@ -305,7 +308,6 @@ begin
   stock_body.OrigTime := NET2CPU(stock_body.OrigTime);
   stock_body.ChannelNo := NET2CPU(stock_body.ChannelNo);
   stock_body.NoSwitch := NET2CPU(stock_body.NoSwitch);
-  l := data_size + 4 * stock_body.NoSwitch;
   for I := 0 to stock_body.NoSwitch - 1 do
   begin
     trans16.i16 := AClient.Socket.ReadInt16();
@@ -318,33 +320,65 @@ begin
   Result := (l = chk);
 end;
 
-{ TStockwrite }
 
-function TStockwrite.cover_data: Integer;
+{ TSjshqWrite }
+
+function TSjshqWrite.cover_data(d_map: TDictionary<string, tarrayex<variant>>;
+  queue: TQueue<tarrayex<Variant>>): Integer;
+var
+  my_data,tmp_data:TArrayEx<Variant>;
+  I,j,k:Integer;
 begin
+  j:=Min(max_cov_num ,queue.Count);
+  Result:=0;
+  for I := 0 to j-1 do
+    begin
+      if queue.Count=0 then Break;
+      my_data:=queue.Dequeue;
+      if d_map.ContainsKey(my_data[0]) then
+        begin
+          tmp_data:=d_map.Items[my_data[0]];
+          for k := 0 to my_data.Len-1  do
+            tmp_data[k]:=my_data[k];
+        end;
 
+      Result:=Result+1;
+
+    end;
 end;
 
-constructor TStockwrite.Create(d_map: TDictionary<string, tarrayex<variant>>;
-  queue: TQueue<tarrayex<Variant>>; cover_num: Integer);
+constructor TSjshqWrite.Create(cover_num: Integer);
 begin
-  Self.max_cov_num:=cover_num;
-  Self.datamap:=d_map;
-  Self.myqueue:=queue;
+  inherited Create;
+  max_cov_num:=cover_num;
 end;
 
-destructor TStockwrite.Destroy;
+destructor TSjshqWrite.Destroy;
 begin
 
   inherited;
 end;
 
-function TStockwrite.initHead: TList<TDBField>;
+function TSjshqWrite.write_dbf(filename: string): Boolean;
 begin
 
 end;
 
-function TStockwrite.write_dbf(filename: string): Boolean;
+{ TSjsxxWrite }
+
+function TSjsxxWrite.cover_data(d_map: TDictionary<string, tarrayex<variant>>;
+  queue: TQueue<tarrayex<Variant>>): Integer;
+begin
+
+end;
+
+constructor TSjsxxWrite.Create(cover_num: Integer);
+begin
+  inherited Create;
+  max_cov_num:=cover_num;
+end;
+
+function TSjsxxWrite.write_dbf(filename: string): Boolean;
 begin
 
 end;
