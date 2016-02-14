@@ -47,7 +47,7 @@ object Form2: TForm2
     Left = 144
     Top = 27
     Width = 16
-    Height = 18
+    Height = 13
     Caption = 'lbl2'
   end
   object lbl3: TLabel
@@ -113,5 +113,12 @@ object Form2: TForm2
     Caption = #35774#32622#30446#24405
     TabOrder = 3
     OnClick = set_btn1Click
+  end
+  object tmr1: TTimer
+    Enabled = False
+    Interval = 30000
+    OnTimer = tmr1Timer
+    Left = 408
+    Top = 392
   end
 end

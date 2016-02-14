@@ -5,7 +5,8 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,Generics.Collections,
-  arrayex,fmtbcd,DBFdirect,System.IOUtils,system.Types, Vcl.Buttons,sse2dbf_set;
+  arrayex,fmtbcd,DBFdirect,System.IOUtils,system.Types, Vcl.Buttons ,
+  Vcl.ExtCtrls;
 
 type
   TaskEntry = class
@@ -61,15 +62,18 @@ type
     lbl4: TLabel;
     freq_1: TLabel;
     lbl5: TLabel;
+    tmr1: TTimer;
     procedure tran_startClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure tran_stopClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure set_btn1Click(Sender: TObject);
+    procedure tmr1Timer(Sender: TObject);
   private
+    ISOpen:Boolean;
     { Private declarations }
   public
-    entry1:TStringList;
+    entry1,holiday:TStringList;
     inifile:string;
     { Public declarations }
   end;
@@ -78,19 +82,29 @@ var
   Form2: TForm2;
   mythread:TaskRunThread;
   g_entry:TaskEntry;
-  setmod:Tsettaskentry;
+
 
 implementation
+uses
+  sse2dbf_set;
+var
+  setmod:Tsettaskentry;
 
 {$R *.dfm}
 
 
 procedure TForm2.FormCreate(Sender: TObject);
+var
+  filepath:string;
 begin
   g_entry:=TaskEntry.Create;
   entry1:=TStringList.Create;
-  inifile:=TPath.GetFullPath('entry.ini');
+  holiday:=TStringList.Create;
+  filepath:=ExtractFilePath(Application.ExeName);
+  inifile:=filepath+'entry.ini';
+  filepath:=filepath+'holiday.ini';
   if FileExists(inifile) then entry1.LoadFromFile(inifile);
+  if FileExists(filepath) then holiday.LoadFromFile(filepath);
   if entry1.Count=0 then
   begin
     lbl2.Caption:='';
@@ -118,6 +132,7 @@ procedure TForm2.FormDestroy(Sender: TObject);
 begin
 // g_entry.logger.Free;
  entry1.Free;
+ holiday.Free;
  g_entry.Free;
 end;
 
@@ -170,23 +185,65 @@ begin
   setmod.Free;
 end;
 
+procedure TForm2.tmr1Timer(Sender: TObject);
+var
+  datetime:TDateTime;
+  date_now,time_now:string;
+  i:Integer;
+begin
+  datetime:=Now;
+  time_now:=FormatDateTime('hh:mm',datetime);
+  if ISOpen then
+     begin
+       if (time_now>'15:30') then
+          begin
+            if mythread<>nil then mythread.Terminate;
+            isopen:=False;
+            mmo1.Lines.Add(formatdatetime('yyyymmdd',datetime)+':'+FormatDateTime('hh:mm',datetime)+'结束');
+          end;
+       Exit;
+     end;
+  date_now:=formatdatetime('yyyymmdd',datetime);
+
+  i:=DayOfWeek(datetime);
+  if (i<>1) and (i<>7) then
+    if (holiday.IndexOf(date_now)<0) then
+     begin
+      if (time_now>'08:30') and (time_now<'15:30') then
+      begin
+        mythread:=TaskRunThread.Create(g_entry);
+        mythread.Start;
+        ISOpen:=True;
+        mmo1.Lines.Add(date_now+':'+time_now+'开始');
+      end;
+     end;
+//  else mmo1.Lines.Add('今天休市');
+
+end;
+
 procedure TForm2.tran_startClick(Sender: TObject);
+var
+  filepath:string;
 begin
 {  g_entry.fast:=Trim(fastdir.Text);
   g_entry.fjy:=Trim(fjydir.Text);
   g_entry.show:=Trim(dbfdir.Text); }
   //g_entry.freg:=2;
+  filepath:=ExtractFilePath(Application.ExeName);
+  filepath:=filepath+'\holiday.ini';
+  if FileExists(filepath) then holiday.LoadFromFile(filepath);
   tran_stop.Enabled:=True;
   tran_start.Enabled:=False;
-  mythread:=TaskRunThread.Create(g_entry);
-  mythread.Start;
+  tmr1.Enabled:=True;
+  ISOpen:=False;
 end;
 
 procedure TForm2.tran_stopClick(Sender: TObject);
 begin
   if mythread<>nil then
      mythread.Terminate;
-  mmo1.Lines.Assign(g_entry.logger);
+  mmo1.Lines.AddStrings(g_entry.logger);
+  tmr1.Enabled:=False;
   tran_stop.Enabled:=False;
   tran_start.Enabled:=True;
 end;
