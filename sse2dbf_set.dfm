@@ -120,7 +120,7 @@ object settaskentry: Tsettaskentry
     OnClick = btn3Click
   end
   object dlgOpen1: TOpenDialog
-    Left = 384
+    Left = 368
     Top = 232
   end
 end

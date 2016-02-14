@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Buttons, Vcl.StdCtrls,System.IOUtils;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Buttons, Vcl.StdCtrls,System.IOUtils,FileCtrl;
 
 type
   Tsettaskentry = class(TForm)
@@ -41,21 +41,27 @@ implementation
 {$R *.dfm}
 
 procedure Tsettaskentry.btn1Click(Sender: TObject);
+var
+  dir:string;
 begin
-  dlgOpen1.Title:='选择fast目录';
-  if dlgOpen1.Execute then fastdir.Text:=TPath.GetDirectoryName(dlgOpen1.FileName);
+    dlgOpen1.Title:='选择fast目录';
+  if SelectDirectory('选择fast目录','',dir) then fastdir.Text:=dir;
 end;
 
 procedure Tsettaskentry.btn2Click(Sender: TObject);
+var
+  dir:string;
 begin
   dlgOpen1.Title:='选择fjy目录';
-  if dlgOpen1.Execute then fjydir.Text:=TPath.GetDirectoryName(dlgOpen1.FileName);
+  if SelectDirectory('选择fjy目录','',dir) then fjydir.Text:=dir;
 end;
 
 procedure Tsettaskentry.btn3Click(Sender: TObject);
+var
+  dir:string;
 begin
   dlgOpen1.Title:='选择show2003目录';
-  if dlgOpen1.Execute then dbfdir.Text:=TPath.GetDirectoryName(dlgOpen1.FileName);
+  if SelectDirectory('选择show2003目录','',dir) then dbfdir.Text:=dir;
 end;
 
 procedure Tsettaskentry.btn_btn1Click(Sender: TObject);
