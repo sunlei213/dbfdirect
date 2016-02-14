@@ -96,6 +96,7 @@ var
 procedure TForm2.FormCreate(Sender: TObject);
 var
   filepath:string;
+  I: Integer;
 begin
   g_entry:=TaskEntry.Create;
   entry1:=TStringList.Create;
@@ -126,6 +127,8 @@ begin
     tran_start.Enabled:=True;
   end;
   tran_stop.Enabled:=False;
+  for I := 0 to 3 do
+    mmo1.Lines.Add('');
 end;
 
 procedure TForm2.FormDestroy(Sender: TObject);
@@ -138,51 +141,56 @@ end;
 
 procedure TForm2.set_btn1Click(Sender: TObject);
 begin
-  setmod:=Tsettaskentry.Create(Application);
-  setmod.Visible:=False;
-  if entry1.Count=0 then
-  begin
-    setmod.fast:='';
-    setmod.fjy:='';
-    setmod.dbfd:='';
-    setmod.frg:='';
-  end
-  else
-  begin
-    setmod.fast:=entry1.Values['fast'];
-    setmod.fjy:=entry1.Values['fjy'];
-    setmod.dbfd:=entry1.Values['dbf'];
-    setmod.frg:=entry1.Values['freq'];
-  end;
-  setmod.ShowModal;
-  if setmod.isok then
-  begin
-    if entry1.Count=0 then
+  setmod := Tsettaskentry.Create(nil);
+  setmod.Visible := False;
+  try
     begin
-      entry1.Add('fast='+setmod.fast);
-      entry1.Add('fjy='+setmod.fjy);
-      entry1.Add('dbf='+setmod.dbfd);
-      entry1.Add('freq='+setmod.frg);
-    end
-    else
-    begin
-      entry1.Values['fast']:=setmod.fast;
-      entry1.Values['fjy']:=setmod.fjy;
-      entry1.Values['dbf']:=setmod.dbfd;
-      entry1.Values['freq']:=setmod.frg;
+      if entry1.Count = 0 then
+      begin
+        setmod.fast := '';
+        setmod.fjy := '';
+        setmod.dbfd := '';
+        setmod.frg := '';
+      end
+      else
+      begin
+        setmod.fast := entry1.Values['fast'];
+        setmod.fjy := entry1.Values['fjy'];
+        setmod.dbfd := entry1.Values['dbf'];
+        setmod.frg := entry1.Values['freq'];
+      end;
+
+      if setmod.ShowModal=mrOk then
+      begin
+        if entry1.Count = 0 then
+        begin
+          entry1.Add('fast=' + setmod.fast);
+          entry1.Add('fjy=' + setmod.fjy);
+          entry1.Add('dbf=' + setmod.dbfd);
+          entry1.Add('freq=' + setmod.frg);
+        end
+        else
+        begin
+          entry1.Values['fast'] := setmod.fast;
+          entry1.Values['fjy'] := setmod.fjy;
+          entry1.Values['dbf'] := setmod.dbfd;
+          entry1.Values['freq'] := setmod.frg;
+        end;
+        g_entry.fast := entry1.Values['fast'];
+        g_entry.fjy := entry1.Values['fjy'];
+        g_entry.show := entry1.Values['dbf'];
+        g_entry.freg := StrToInt(entry1.Values['freq']);
+        entry1.SaveToFile(inifile);
+        lbl2.Caption := entry1.Values['fast'];
+        lbl3.Caption := entry1.Values['fjy'];
+        lbl4.Caption := entry1.Values['dbf'];
+        lbl5.Caption := entry1.Values['freq'];
+        tran_start.Enabled := True;
+      end;
     end;
-    g_entry.fast:=entry1.Values['fast'];
-    g_entry.fjy:= entry1.Values['fjy'];
-    g_entry.show:= entry1.Values['dbf'];
-    g_entry.freg:=StrToInt(entry1.Values['freq']);
-    entry1.SaveToFile(inifile);
-    lbl2.Caption:=entry1.Values['fast'];
-    lbl3.Caption:=entry1.Values['fjy'];
-    lbl4.Caption:=entry1.Values['dbf'];
-    lbl5.Caption:=entry1.Values['freq'];
-    tran_start.Enabled:=True;
+  finally
+    setmod.Free;
   end;
-  setmod.Free;
 end;
 
 procedure TForm2.tmr1Timer(Sender: TObject);
@@ -199,25 +207,25 @@ begin
           begin
             if mythread<>nil then mythread.Terminate;
             isopen:=False;
-            mmo1.Lines.Add(formatdatetime('yyyymmdd',datetime)+':'+FormatDateTime('hh:mm',datetime)+'结束');
+            mmo1.Lines[2]:= formatdatetime('yyyymmdd',datetime)+':'+FormatDateTime('hh:mm',datetime)+'结束';
           end;
        Exit;
      end;
   date_now:=formatdatetime('yyyymmdd',datetime);
 
   i:=DayOfWeek(datetime);
-  if (i<>1) and (i<>7) then
-    if (holiday.IndexOf(date_now)<0) then
+  if (i<>1) and (i<>7) and (holiday.IndexOf(date_now)<0) then
      begin
+      mmo1.Lines[0]:='今天开市';
       if (time_now>'08:30') and (time_now<'15:30') then
       begin
         mythread:=TaskRunThread.Create(g_entry);
         mythread.Start;
         ISOpen:=True;
-        mmo1.Lines.Add(date_now+':'+time_now+'开始');
+        mmo1.Lines[1]:= date_now+':'+time_now+'开始';
       end;
-     end;
-//  else mmo1.Lines.Add('今天休市');
+     end
+  else mmo1.Lines[0]:='今天休市';
 
 end;
 
@@ -464,12 +472,12 @@ end;
 
 constructor TaskRunThread.Create(tasken: taskentry);
 begin
+  inherited Create(True);
   self.entry:=tasken;
   self.freg:=tasken.freg;
   Self.datamap:=TDictionary<string,TArrayEx<Variant>>.Create;
   Self.T1IOPVMap:=TDictionary<string,string>.Create;
   Self.IOPVMap:=TDictionary<string,string>.Create;
-  inherited Create(True);
 end;
 
 destructor TaskRunThread.Destroy;
@@ -515,7 +523,7 @@ begin
        self.entry.logger.Add(e.Message);
        Synchronize(procedure
                    begin
-                     Form2.mmo1.Lines.Assign(g_entry.logger);
+                     Form2.mmo1.Lines.AddStrings(g_entry.logger);
                      Form2.tran_start.Enabled:=True;
                      Form2.tran_stop.Enabled:=False;
                    end
@@ -726,15 +734,10 @@ begin
         Self.convertMktdtRecord2Map(lin);
       end;
     else
-      if i=183 then
-         i:=i;
       Self.convertMktdtRecord2Map(lin);
     end;
   end;
   flines.Free;
-{  szRecord.Clear;
-  agRecord.Clear;
-  enRecord.Clear;}
   szRecord.Free;
   agRecord.Free;
   enRecord.Free;
