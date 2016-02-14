@@ -178,7 +178,6 @@ end;
 
 function TDBField.formatValue(obj: Variant):string;
 var
-  s1:tbcd;
   lowdec1,i,j:integer;
   st1,st2:ansistring;
   ob:string;
