@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Buttons, Vcl.StdCtrls,System.IOUtils,FileCtrl;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Buttons, Vcl.StdCtrls,System.IOUtils,Vcl.FileCtrl;
 
 type
   Tsettaskentry = class(TForm)
@@ -17,7 +17,6 @@ type
     btn1: TBitBtn;
     btn2: TBitBtn;
     btn3: TBitBtn;
-    dlgOpen1: TOpenDialog;
     lbl1: TLabel;
     lbl2: TLabel;
     lbl3: TLabel;
@@ -32,7 +31,7 @@ type
     { Private declarations }
   public
     fast,fjy,dbfd,frg:string;
-    isok:boolean;{ Public declarations }
+ { Public declarations }
   end;
 
 
@@ -44,7 +43,6 @@ procedure Tsettaskentry.btn1Click(Sender: TObject);
 var
   dir:string;
 begin
-    dlgOpen1.Title:='选择fast目录';
   if SelectDirectory('选择fast目录','',dir) then fastdir.Text:=dir;
 end;
 
@@ -52,7 +50,6 @@ procedure Tsettaskentry.btn2Click(Sender: TObject);
 var
   dir:string;
 begin
-  dlgOpen1.Title:='选择fjy目录';
   if SelectDirectory('选择fjy目录','',dir) then fjydir.Text:=dir;
 end;
 
@@ -60,29 +57,25 @@ procedure Tsettaskentry.btn3Click(Sender: TObject);
 var
   dir:string;
 begin
-  dlgOpen1.Title:='选择show2003目录';
   if SelectDirectory('选择show2003目录','',dir) then dbfdir.Text:=dir;
 end;
 
 procedure Tsettaskentry.btn_btn1Click(Sender: TObject);
 begin
-   isok:=True;
    Self.fast:=fastdir.Text;
    fjy:=fjydir.Text;
    dbfd:=dbfdir.Text;
    frg:=freq_set.Text;
-   Self.Close;
+   ModalResult := mrOK;
 end;
 
 procedure Tsettaskentry.btn_btn2Click(Sender: TObject);
 begin
-   isok:=False;
-   Self.Close;
+   ModalResult := mrCancel;
 end;
 
 procedure Tsettaskentry.FormShow(Sender: TObject);
 begin
-   isok:=False;
    fastdir.Text:=Self.fast;
    fjydir.Text:=fjy;
    dbfdir.Text:=dbfd;
