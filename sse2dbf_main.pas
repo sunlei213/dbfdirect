@@ -373,12 +373,13 @@ begin
   16,17,18:obj[2]:='0.000';
   21,22   :
            begin
-             s1:=Self.T1IOPVMap.Items[sl1[3]];
+             if Self.T1IOPVMap.ContainsKey(sl1[3]) then
+              obj[2]:=Self.T1IOPVMap.Items[sl1[3]];
+             if Self.IOPVMap.ContainsKey(sl1[3]) then
+              obj[7]:=Self.IOPVMap.Items[sl1[3]];
+             {s1:=Self.IOPVMap.Items[sl1[3]];
              if s1<>null then
-             obj[2]:=s1;
-             s1:=Self.IOPVMap.Items[sl1[3]];
-             if s1<>null then
-             obj[7]:=s1;
+             obj[7]:=s1;}
            end;
   23      :obj[11]:=True;
   else
@@ -713,35 +714,44 @@ begin
     except
       on E: Exception do
       begin
-        Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fast, e.Message]));
+        Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fjy, e.Message]));
         Exit(False);
       end;
     end;
-    for lin in flines do
-    begin
-      Self.convertFJYRecord2Map(lin, Self.datamap);
+    try
+
+      for lin in flines do
+      begin
+        Self.convertFJYRecord2Map(lin, Self.datamap);
+      end;
+      Self.datamap.AddOrSetValue('888880', tarrayex<Variant>.Create(['888880', '新标准券', '1.0', '0.0', '0', '0.0', '0.0', '0.0', '0.0', '0.0', '0', True, '0', '0.0', '0', '0.0', '0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0']));
+      Self.datamap.AddOrSetValue('799990', tarrayex<Variant>.Create(['799990', '市值股数', '1.0', '0.0', '0', '0.0', '0.0', '0.0', '0.0', '0.0', '0', True, '0', '0.0', '0', '0.0', '0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0']));
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fjy, e.Message]));
+        Exit(False);
+      end;
     end;
-    Self.datamap.AddOrSetValue('888880', tarrayex<Variant>.Create(['888880', '新标准券', '1.0', '0.0', '0', '0.0', '0.0', '0.0', '0.0', '0.0', '0', True, '0', '0.0', '0', '0.0', '0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0']));
-    Self.datamap.AddOrSetValue('799990', tarrayex<Variant>.Create(['799990', '市值股数', '1.0', '0.0', '0', '0.0', '0.0', '0.0', '0.0', '0.0', '0', True, '0', '0.0', '0', '0.0', '0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0']));
-    Result := True;
   finally
     flines.Free;
   end;
 end;
 
-function TaskRunThread.wirteMktdt2Show:Boolean;
+function TaskRunThread.wirteMktdt2Show: Boolean;
 var
-flines:TStringList;
-lin,firstrec:string;
-szRecord,agRecord,enRecord:TStringList;
-i:Integer;
-obj1:tarrayex<Variant>;
+  flines: TStringList;
+  lin, firstrec: string;
+  szRecord, agRecord, enRecord: TStringList;
+  i: Integer;
+  obj1: tarrayex<Variant>;
 begin
   flines := TStringList.Create;
   enRecord := TStringList.Create;
   szRecord := TStringList.Create;
   agRecord := TStringList.Create;
-  Result:=False;
+  Result := False;
   try
     begin
       try
@@ -753,37 +763,45 @@ begin
           Exit(False);
         end;
       end;
-      i := 0;
-      enRecord.StrictDelimiter := True;
-      szRecord.StrictDelimiter := True;
-      agRecord.StrictDelimiter := True;
-      enRecord.Delimiter := '|';
-      szRecord.Delimiter := '|';
-      agRecord.Delimiter := '|';
-      for lin in flines do
-      begin
-        i := i + 1;
-        case i of
-          1:
-            firstrec := lin;
-          2:
-            szRecord.DelimitedText := lin;
-          3:
-            agRecord.DelimitedText := lin;
-          4:
-            begin
-              enRecord.DelimitedText := lin;
-              obj1 := setFirstRecVal(firstrec, szRecord[9], agRecord[9], enRecord[9]);
-              Self.datamap.AddOrSetValue('000000', obj1);
-              Self.convertMktdtRecord2Map(szRecord.DelimitedText);
-              Self.convertMktdtRecord2Map(agRecord.DelimitedText);
-              Self.convertMktdtRecord2Map(lin);
-            end;
-        else
-          Self.convertMktdtRecord2Map(lin);
+      try
+        i := 0;
+        enRecord.StrictDelimiter := True;
+        szRecord.StrictDelimiter := True;
+        agRecord.StrictDelimiter := True;
+        enRecord.Delimiter := '|';
+        szRecord.Delimiter := '|';
+        agRecord.Delimiter := '|';
+        for lin in flines do
+        begin
+          i := i + 1;
+          case i of
+            1:
+              firstrec := lin;
+            2:
+              szRecord.DelimitedText := lin;
+            3:
+              agRecord.DelimitedText := lin;
+            4:
+              begin
+                enRecord.DelimitedText := lin;
+                obj1 := setFirstRecVal(firstrec, szRecord[9], agRecord[9], enRecord[9]);
+                Self.datamap.AddOrSetValue('000000', obj1);
+                Self.convertMktdtRecord2Map(szRecord.DelimitedText);
+                Self.convertMktdtRecord2Map(agRecord.DelimitedText);
+                Self.convertMktdtRecord2Map(lin);
+              end;
+          else
+            Self.convertMktdtRecord2Map(lin);
+          end;
+        end;
+        Result := True;
+      except
+        on E: Exception do
+        begin
+          Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fast, e.Message]));
+          Exit(False);
         end;
       end;
-      Result:=True;
     end;
   finally
     begin
