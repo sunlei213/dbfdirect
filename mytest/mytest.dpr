@@ -2,7 +2,8 @@ program mytest;
 
 uses
   Vcl.Forms,
-  mytest_main in 'mytest_main.pas' {Form1};
+  mytest_main in 'mytest_main.pas' {Form1},
+  mystock.logger in '..\myclass\mystock.logger.pas';
 
 {$R *.res}
 

@@ -4,23 +4,27 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils,System.Generics.Collections ,System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,system.Diagnostics, Vcl.StdCtrls;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,system.Diagnostics, Vcl.StdCtrls, mystock.logger;
 
 type
   myintf=interface
     function readdata:TArray<Integer>;
+    procedure setdata(cou:Integer;st1:string);
+    procedure show;
   end;
   TMyMsg=class(TInterfacedObject,myintf)
   private
     leng:Integer;
     fmsg:TArray<string>;
     inarr:tarray<Integer>;
+    str1:string;
     function recover(st:string):Integer;
   public
     constructor create;
     destructor destroy;override;
     procedure setdata(cou:Integer;st1:string);
     function readdata:TArray<Integer>;virtual;
+    procedure show;
   end;
   TForm1 = class(TForm)
     edt1: TEdit;
@@ -35,7 +39,8 @@ type
     procedure FormDestroy(Sender: TObject);
   private
     stopw:TStopwatch;
-    queu:TQueue<TMyMsg>;
+    queu:TQueue<myintf>;
+    procedure testintface(x1:myintf);
     { Private declarations }
   public
     { Public declarations }
@@ -43,8 +48,11 @@ type
 
 var
   Form1: TForm1;
+  log:TLogger;
 
 implementation
+
+
 
 {$R *.dfm}
 
@@ -55,8 +63,11 @@ var
   i,j,k:Integer;
   num:array [0..7] of integer;
   starr:TArray<string>;
-  my:TMyMsg;
+  my:myintf;
+  my1:TMyMsg;
+  log2:TLogger;
 begin
+  log2:=TLogger.Instance;
   num[0]:=1;
   for I := 1 to 7 do
     num[i]:=num[i-1]*10;
@@ -64,9 +75,16 @@ begin
   j:=st.ToInteger;
   st:='1234.85697';
   k:=1234856970;
+  my1:=TMyMsg.create;
+  my1.setdata(2,'destroy');
+  my:=my1;
+  testintface(my);
+  testintface(my);
+  log2.WriteLog('log2,button1',2);
+  ShowMessage('test');
   stopw.Reset;
   stopw.Start;
-  for I := 0 to j do
+  for I := 0 to j-1 do
   begin
    my:=TMyMsg.create;
    my.setdata(2,st);
@@ -86,7 +104,7 @@ var
 begin
   st:=edt1.Text;
   j:=st.ToInteger;
-  st:='1234.85697';
+  st:='1234.56789';
 //  k:=st.ToExtended;
   stopw.Reset;
   stopw.Start;
@@ -94,6 +112,7 @@ begin
   begin
    imy:=queu.Dequeue;
    k:=imy.readdata;
+   imy.setdata(2,st);
   end;
   stopw.Stop;
   mmo1.Lines.Add(Format('浮点%d,%d,%d循环%d次耗时%d毫秒',[k[0],k[1],queu.Count,i,stopw.ElapsedMilliseconds]));
@@ -123,12 +142,22 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 begin
  stopw:=TStopwatch.Create;
- queu:=TQueue<TMyMsg>.Create;
+ queu:=TQueue<myintf>.Create;
+ log:= TLogger.Instance;
+ log.LogShower:=mmo1;
+ log.WriteLog('程序开始了',1);
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
+  log.WriteLog('程序结束了',1);
   queu.Free;
+  log.ReleaseInstance;
+end;
+
+procedure TForm1.testintface(x1: myintf);
+begin
+  x1.show;
 end;
 
 { TMyMsg }
@@ -149,6 +178,7 @@ end;
 destructor TMyMsg.destroy;
 begin
   SetLength(fmsg,0);
+  log.WriteLog(Self.str1,1);
   inherited;
 end;
 
@@ -179,8 +209,15 @@ var
 begin
   leng:=cou;
   setlength(fmsg,cou);
+  Self.str1:=st1;
   for I := 0 to cou-1 do
     fmsg[i]:=st1;
+end;
+
+procedure TMyMsg.show;
+begin
+  Self.leng:=leng+1;
+  log.WriteLog('第%d次调用',[Leng],1);
 end;
 
 end.
