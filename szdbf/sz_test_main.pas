@@ -13,6 +13,10 @@ type
     idtcpclnt1: TIdTCPClient;
     btn2: TButton;
     mmo1: TMemo;
+    lbl1: TLabel;
+    lbl2: TLabel;
+    edt1: TEdit;
+    edt2: TEdit;
     procedure btn1Click(Sender: TObject);
     procedure btn2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -62,8 +66,8 @@ begin
   FillBytes(t_heat, 12, 0);
   t_heat[3] := 3;
   t_heat[11] := 3;
-  MYform.idtcpclnt1.Host := '127.0.0.1';
-  MYform.idtcpclnt1.Port := 8016;
+  MYform.idtcpclnt1.Host := MYform.edt1.text;
+  MYform.idtcpclnt1.Port := StrToInt(MYform.edt2.Text);
   try
     msg_type := 1;
     body_ln := 92;
@@ -149,6 +153,8 @@ begin
       begin
         ShowMessage('没有连接上主机');
       end);
+      MYform.btn1.Enabled:=True;
+      MYform.btn2.Enabled:=False;
   end;
 end;
 

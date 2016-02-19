@@ -2,8 +2,8 @@ object settaskentry: Tsettaskentry
   Left = 0
   Top = 0
   Caption = #35774#32622#20219#21153#21442#25968
-  ClientHeight = 281
-  ClientWidth = 418
+  ClientHeight = 280
+  ClientWidth = 359
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -97,7 +97,7 @@ object settaskentry: Tsettaskentry
     Top = 22
     Width = 27
     Height = 25
-    Caption = 'btn1'
+    Caption = '...'
     TabOrder = 6
     OnClick = btn1Click
   end
@@ -106,7 +106,7 @@ object settaskentry: Tsettaskentry
     Top = 62
     Width = 27
     Height = 25
-    Caption = 'btn1'
+    Caption = '...'
     TabOrder = 7
     OnClick = btn2Click
   end
@@ -114,13 +114,9 @@ object settaskentry: Tsettaskentry
     Left = 248
     Top = 102
     Width = 27
-    Height = 25
-    Caption = 'btn1'
+    Height = 23
+    Caption = '...'
     TabOrder = 8
     OnClick = btn3Click
-  end
-  object dlgOpen1: TOpenDialog
-    Left = 384
-    Top = 232
   end
 end

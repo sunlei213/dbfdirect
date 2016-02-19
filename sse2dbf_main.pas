@@ -5,7 +5,8 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,Generics.Collections,
-  arrayex,fmtbcd,DBFdirect,System.IOUtils,system.Types, Vcl.Buttons,sse2dbf_set;
+  arrayex,fmtbcd,DBFdirect,System.IOUtils,system.Types, Vcl.Buttons ,
+  Vcl.ExtCtrls;
 
 type
   TaskEntry = class
@@ -34,8 +35,8 @@ type
     T1IOPVMap,IOPVMap:TDictionary<string,string>;
     datamap:TDictionary<string,tarrayex<variant>>;
     procedure wirteDBF;
-    procedure wirteFJY2Show;
-    procedure wirteMktdt2Show;
+    function wirteFJY2Show:Boolean;
+    function wirteMktdt2Show:Boolean;
     procedure convertMktdtRecord2Map(rec:String);
     procedure convertFJYRecord2Map(rec:String;map:TDictionary<string,tarrayex<variant>>);
     function setFirstRecVal(firstRec,szTradePrice,agTradePrice,bgTradePrice:string):tarrayex<variant>;
@@ -61,15 +62,18 @@ type
     lbl4: TLabel;
     freq_1: TLabel;
     lbl5: TLabel;
+    tmr1: TTimer;
     procedure tran_startClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure tran_stopClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure set_btn1Click(Sender: TObject);
+    procedure tmr1Timer(Sender: TObject);
   private
+    ISOpen:Boolean;
     { Private declarations }
   public
-    entry1:TStringList;
+    entry1,holiday:TStringList;
     inifile:string;
     { Public declarations }
   end;
@@ -78,19 +82,30 @@ var
   Form2: TForm2;
   mythread:TaskRunThread;
   g_entry:TaskEntry;
-  setmod:Tsettaskentry;
+
 
 implementation
+uses
+  sse2dbf_set;
+var
+  setmod:Tsettaskentry;
 
 {$R *.dfm}
 
 
 procedure TForm2.FormCreate(Sender: TObject);
+var
+  filepath:string;
+  I: Integer;
 begin
   g_entry:=TaskEntry.Create;
   entry1:=TStringList.Create;
-  inifile:=TPath.GetFullPath('entry.ini');
+  holiday:=TStringList.Create;
+  filepath:=ExtractFilePath(Application.ExeName);
+  inifile:=filepath+'entry.ini';
+  filepath:=filepath+'holiday.ini';
   if FileExists(inifile) then entry1.LoadFromFile(inifile);
+  if FileExists(filepath) then holiday.LoadFromFile(filepath);
   if entry1.Count=0 then
   begin
     lbl2.Caption:='';
@@ -112,81 +127,136 @@ begin
     tran_start.Enabled:=True;
   end;
   tran_stop.Enabled:=False;
+  for I := 0 to 2 do
+    mmo1.Lines.Add('');
 end;
 
 procedure TForm2.FormDestroy(Sender: TObject);
 begin
 // g_entry.logger.Free;
  entry1.Free;
+ holiday.Free;
  g_entry.Free;
 end;
 
 procedure TForm2.set_btn1Click(Sender: TObject);
 begin
-  setmod:=Tsettaskentry.Create(Application);
-  setmod.Visible:=False;
-  if entry1.Count=0 then
-  begin
-    setmod.fast:='';
-    setmod.fjy:='';
-    setmod.dbfd:='';
-    setmod.frg:='';
-  end
-  else
-  begin
-    setmod.fast:=entry1.Values['fast'];
-    setmod.fjy:=entry1.Values['fjy'];
-    setmod.dbfd:=entry1.Values['dbf'];
-    setmod.frg:=entry1.Values['freq'];
-  end;
-  setmod.ShowModal;
-  if setmod.isok then
-  begin
-    if entry1.Count=0 then
+  setmod := Tsettaskentry.Create(nil);
+  setmod.Visible := False;
+  try
     begin
-      entry1.Add('fast='+setmod.fast);
-      entry1.Add('fjy='+setmod.fjy);
-      entry1.Add('dbf='+setmod.dbfd);
-      entry1.Add('freq='+setmod.frg);
-    end
-    else
-    begin
-      entry1.Values['fast']:=setmod.fast;
-      entry1.Values['fjy']:=setmod.fjy;
-      entry1.Values['dbf']:=setmod.dbfd;
-      entry1.Values['freq']:=setmod.frg;
+      if entry1.Count = 0 then
+      begin
+        setmod.fast := '';
+        setmod.fjy := '';
+        setmod.dbfd := '';
+        setmod.frg := '';
+      end
+      else
+      begin
+        setmod.fast := entry1.Values['fast'];
+        setmod.fjy := entry1.Values['fjy'];
+        setmod.dbfd := entry1.Values['dbf'];
+        setmod.frg := entry1.Values['freq'];
+      end;
+
+      if setmod.ShowModal=mrOk then
+      begin
+        if entry1.Count = 0 then
+        begin
+          entry1.Add('fast=' + setmod.fast);
+          entry1.Add('fjy=' + setmod.fjy);
+          entry1.Add('dbf=' + setmod.dbfd);
+          entry1.Add('freq=' + setmod.frg);
+        end
+        else
+        begin
+          entry1.Values['fast'] := setmod.fast;
+          entry1.Values['fjy'] := setmod.fjy;
+          entry1.Values['dbf'] := setmod.dbfd;
+          entry1.Values['freq'] := setmod.frg;
+        end;
+        g_entry.fast := entry1.Values['fast'];
+        g_entry.fjy := entry1.Values['fjy'];
+        g_entry.show := entry1.Values['dbf'];
+        g_entry.freg := StrToInt(entry1.Values['freq']);
+        entry1.SaveToFile(inifile);
+        lbl2.Caption := entry1.Values['fast'];
+        lbl3.Caption := entry1.Values['fjy'];
+        lbl4.Caption := entry1.Values['dbf'];
+        lbl5.Caption := entry1.Values['freq'];
+        tran_start.Enabled := True;
+      end;
     end;
-    g_entry.fast:=entry1.Values['fast'];
-    g_entry.fjy:= entry1.Values['fjy'];
-    g_entry.show:= entry1.Values['dbf'];
-    g_entry.freg:=StrToInt(entry1.Values['freq']);
-    entry1.SaveToFile(inifile);
-    lbl2.Caption:=entry1.Values['fast'];
-    lbl3.Caption:=entry1.Values['fjy'];
-    lbl4.Caption:=entry1.Values['dbf'];
-    lbl5.Caption:=entry1.Values['freq'];
-    tran_start.Enabled:=True;
+  finally
+    setmod.Free;
   end;
-  setmod.Free;
+end;
+
+procedure TForm2.tmr1Timer(Sender: TObject);
+var
+  datetime:TDateTime;
+  date_now,time_now:string;
+  i:Integer;
+begin
+  datetime:=Now;
+  time_now:=FormatDateTime('hh:mm',datetime);
+  if mmo1.Lines.Count>15 then
+    begin
+      mmo1.Lines.Clear;
+      for I := 0 to 2 do mmo1.Lines.Add('');
+    end;
+  if ISOpen then
+     begin
+       if (time_now>'15:30') then
+          begin
+            if mythread<>nil then mythread.Terminate;
+            isopen:=False;
+            mmo1.Lines[2]:= formatdatetime('yyyymmdd',datetime)+':'+FormatDateTime('hh:mm',datetime)+'结束';
+          end;
+       Exit;
+     end;
+  date_now:=formatdatetime('yyyymmdd',datetime);
+
+  i:=DayOfWeek(datetime);
+  if (i<>1) and (i<>7) and (holiday.IndexOf(date_now)<0) then
+     begin
+      mmo1.Lines[0]:='今天开市';
+      if (time_now>'08:30') and (time_now<'15:30') then
+      begin
+        mythread:=TaskRunThread.Create(g_entry);
+        mythread.Start;
+        ISOpen:=True;
+        mmo1.Lines[1]:= date_now+':'+time_now+'开始';
+      end;
+     end
+  else mmo1.Lines[0]:='今天休市';
+
 end;
 
 procedure TForm2.tran_startClick(Sender: TObject);
+var
+  filepath:string;
 begin
 {  g_entry.fast:=Trim(fastdir.Text);
   g_entry.fjy:=Trim(fjydir.Text);
   g_entry.show:=Trim(dbfdir.Text); }
   //g_entry.freg:=2;
+  filepath:=ExtractFilePath(Application.ExeName);
+  filepath:=filepath+'\holiday.ini';
+  if FileExists(filepath) then holiday.LoadFromFile(filepath);
   tran_stop.Enabled:=True;
   tran_start.Enabled:=False;
-  mythread:=TaskRunThread.Create(g_entry);
-  mythread.Start;
+  tmr1.Enabled:=True;
+  ISOpen:=False;
 end;
 
 procedure TForm2.tran_stopClick(Sender: TObject);
 begin
   if mythread<>nil then
      mythread.Terminate;
-  mmo1.Lines.Assign(g_entry.logger);
+  mmo1.Lines.AddStrings(g_entry.logger);
+  tmr1.Enabled:=False;
   tran_stop.Enabled:=False;
   tran_start.Enabled:=True;
 end;
@@ -303,12 +373,13 @@ begin
   16,17,18:obj[2]:='0.000';
   21,22   :
            begin
-             s1:=Self.T1IOPVMap.Items[sl1[3]];
+             if Self.T1IOPVMap.ContainsKey(sl1[3]) then
+              obj[2]:=Self.T1IOPVMap.Items[sl1[3]];
+             if Self.IOPVMap.ContainsKey(sl1[3]) then
+              obj[7]:=Self.IOPVMap.Items[sl1[3]];
+             {s1:=Self.IOPVMap.Items[sl1[3]];
              if s1<>null then
-             obj[2]:=s1;
-             s1:=Self.IOPVMap.Items[sl1[3]];
-             if s1<>null then
-             obj[7]:=s1;
+             obj[7]:=s1;}
            end;
   23      :obj[11]:=True;
   else
@@ -407,12 +478,12 @@ end;
 
 constructor TaskRunThread.Create(tasken: taskentry);
 begin
+  inherited Create(True);
   self.entry:=tasken;
   self.freg:=tasken.freg;
   Self.datamap:=TDictionary<string,TArrayEx<Variant>>.Create;
   Self.T1IOPVMap:=TDictionary<string,string>.Create;
   Self.IOPVMap:=TDictionary<string,string>.Create;
-  inherited Create(True);
 end;
 
 destructor TaskRunThread.Destroy;
@@ -435,12 +506,22 @@ begin
      try
        begin
          start:=gettickcount;
-         wirteMktdt2Show;
-         h1:=gettickcount;
-         wirteFJY2Show;
-         h2:=gettickcount;
-         wirteDBF;
-         h3:=gettickcount;
+         if wirteMktdt2Show then
+           begin
+             h1:=gettickcount;
+             if wirteFJY2Show then
+                begin
+                  h2:=gettickcount;
+                  wirteDBF;
+                end
+             else h2:=gettickcount;
+             h3:=gettickcount;
+           end
+         else
+          begin
+            h1:=gettickcount;
+            h2:=h1;h3:=h1;
+          end;
          hlong:=h3-start;
          j:=self.freg-hlong;
          l:=100;
@@ -452,13 +533,21 @@ begin
                      begin
                        form2.lbl1.Caption:=Format('%d:三段使用时间分别为：%d,%d,%d，总时间为%d,%d',[i,h1-start,h2-h1,h3-h2,hlong,h4-start])
                      end);
+         if g_entry.logger.Count>0 then
+           Synchronize(procedure
+                       begin
+                         Form2.mmo1.Lines.AddStrings(g_entry.logger);
+                         g_entry.logger.Clear;
+                       end
+                       );
+
        end;
      except on E: Exception do
        begin
        self.entry.logger.Add(e.Message);
        Synchronize(procedure
                    begin
-                     Form2.mmo1.Lines.Assign(g_entry.logger);
+                     Form2.mmo1.Lines.AddStrings(g_entry.logger);
                      Form2.tran_start.Enabled:=True;
                      Form2.tran_stop.Enabled:=False;
                    end
@@ -566,121 +655,162 @@ end;
 
 procedure TaskRunThread.wirteDBF;
 var
-stl:TList<string>;
-st1:string;
-write1:TDBFWrite;
-obj1:TArrayEx<Variant>;
-delflag,ob11:Boolean;
+  stl: TList<string>;
+  st1: string;
+  write1: TDBFWrite;
+  obj1: TArrayEx<Variant>;
+  delflag, ob11: Boolean;
 begin
-  stl:=TList<string>.Create(Self.datamap.Keys);
-  write1:=TDBFWrite.Create(initHead);
+  stl := TList<string>.Create(Self.datamap.Keys);
+  write1 := TDBFWrite.Create(initHead);
   write1.initHead2Stream(Self.datamap.Count);
-  stl.Sort;
-  for st1 in stl do
-  begin
-    obj1:=Self.datamap.Items[st1];
-    if st1='000000' then
-      write1.addRecord0(True,obj1)
-    else
+  try
+    begin
+      stl.Sort;
+      for st1 in stl do
       begin
-        delflag:=False;
-        ob11:=False;
-        if VarType(obj1[11])=varBoolean then ob11:=obj1[11];
-        if ob11 then
-           delflag:=true;
-        obj1[11]:=null;
-        write1.addRecord(delflag,obj1);
+        obj1 := Self.datamap.Items[st1];
+        if st1 = '000000' then
+          write1.addRecord0(True, obj1)
+        else
+        begin
+          delflag := False;
+          ob11 := False;
+          if VarType(obj1[11]) = varBoolean then
+            ob11 := obj1[11];
+          if ob11 then
+            delflag := true;
+          obj1[11] := null;
+          write1.addRecord(delflag, obj1);
+        end;
       end;
-  end;
-  write1.wirteStream2File(Self.entry.show);
-  Self.T1IOPVMap.Clear;
-  Self.IOPVMap.Clear;
+      try
+        write1.wirteStream2File(Self.entry.show);
+      except
+        on E: Exception do
+          Self.entry.logger.Add(format('文件%s写入失败，错误原因%s', [self.entry.fast, e.Message]));
+      end;
+    end;
 //  for st1 in stl do Self.datamap.Items[st1]:=nil;
 //  Self.datamap.Clear;
-  stl.Free;
-  write1.Free;
+  finally
+    Self.T1IOPVMap.Clear;
+    Self.IOPVMap.Clear;
+    stl.Free;
+    write1.Free;
+  end;
 end;
 
-procedure TaskRunThread.wirteFJY2Show;
+function TaskRunThread.wirteFJY2Show: Boolean;
 var
-flines:TStringList;
-lin:string;
+  flines: TStringList;
+  lin: string;
 begin
-  flines:=TStringList.Create;
+  flines := TStringList.Create;
+  Result := False;
   try
-    flines.LoadFromFile(Self.entry.fjy);
-  except on E: EInOutError do  Self.entry.logger.Add(format('文件%s读取失败，错误原因%s',[self.entry.fjy,e.Message]));
-  end;
-  for lin in flines do
-  begin
-    Self.convertFJYRecord2Map(lin,Self.datamap);
-  end;
-  Self.datamap.AddOrSetValue('888880',tarrayex<Variant>.Create(['888880','新标准券','1.0','0.0','0',
-                                '0.0','0.0','0.0','0.0','0.0',
-                                '0',True,'0','0.0','0','0.0',
-                                '0','0','0.0','0','0.0',
-                                '0','0.0','0','0.0','0','0.0',
-                                '0','0.0','0']));
-  Self.datamap.AddOrSetValue('799990',tarrayex<Variant>.Create(['799990','市值股数','1.0','0.0','0',
-                                '0.0','0.0','0.0','0.0','0.0',
-                                '0',True,'0','0.0','0','0.0',
-                                '0','0','0.0','0','0.0',
-                                '0','0.0','0','0.0','0','0.0',
-                                '0','0.0','0']));
-  flines.Free;
-end;
-
-procedure TaskRunThread.wirteMktdt2Show;
-var
-flines:TStringList;
-lin,firstrec:string;
-szRecord,agRecord,enRecord:TStringList;
-i:Integer;
-obj1:tarrayex<Variant>;
-begin
-  flines:=TStringList.Create;
-  try
-    flines.LoadFromFile(Self.entry.fast);
-  except on E: EInOutError do  Self.entry.logger.Add(format('文件%s读取失败，错误原因%s',[self.entry.fast,e.Message]));
-  end;
-  i:=0;
-  enRecord:=TStringList.Create;
-  szRecord:=TStringList.Create;
-  agRecord:=TStringList.Create;
-  enRecord.StrictDelimiter:=True;
-  szRecord.StrictDelimiter:=True;
-  agRecord.StrictDelimiter:=True;
-  enRecord.Delimiter:='|';
-  szRecord.Delimiter:='|';
-  agRecord.Delimiter:='|';
-  for lin in flines do
-  begin
-    i:=i+1;
-    case i of
-    1:firstrec:=lin;
-    2:szRecord.DelimitedText:=lin;
-    3:agRecord.DelimitedText:=lin;
-    4:begin
-        enRecord.DelimitedText:=lin;
-        obj1:=setFirstRecVal(firstrec,szRecord[9],agRecord[9],enRecord[9]);
-        Self.datamap.AddOrSetValue('000000',obj1);
-        Self.convertMktdtRecord2Map(szRecord.DelimitedText);
-        Self.convertMktdtRecord2Map(agRecord.DelimitedText);
-        Self.convertMktdtRecord2Map(lin);
+    try
+      flines.LoadFromFile(Self.entry.fjy);
+    except
+      on E: Exception do
+      begin
+        Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fjy, e.Message]));
+        Exit(False);
       end;
-    else
-      if i=183 then
-         i:=i;
-      Self.convertMktdtRecord2Map(lin);
+    end;
+    try
+
+      for lin in flines do
+      begin
+        Self.convertFJYRecord2Map(lin, Self.datamap);
+      end;
+      Self.datamap.AddOrSetValue('888880', tarrayex<Variant>.Create(['888880', '新标准券', '1.0', '0.0', '0', '0.0', '0.0', '0.0', '0.0', '0.0', '0', True, '0', '0.0', '0', '0.0', '0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0']));
+      Self.datamap.AddOrSetValue('799990', tarrayex<Variant>.Create(['799990', '市值股数', '1.0', '0.0', '0', '0.0', '0.0', '0.0', '0.0', '0.0', '0', True, '0', '0.0', '0', '0.0', '0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0']));
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fjy, e.Message]));
+        Exit(False);
+      end;
+    end;
+  finally
+    flines.Free;
+  end;
+end;
+
+function TaskRunThread.wirteMktdt2Show: Boolean;
+var
+  flines: TStringList;
+  lin, firstrec: string;
+  szRecord, agRecord, enRecord: TStringList;
+  i: Integer;
+  obj1: tarrayex<Variant>;
+begin
+  flines := TStringList.Create;
+  enRecord := TStringList.Create;
+  szRecord := TStringList.Create;
+  agRecord := TStringList.Create;
+  Result := False;
+  try
+    begin
+      try
+        flines.LoadFromFile(Self.entry.fast);
+      except
+        on E: Exception do
+        begin
+          Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fast, e.Message]));
+          Exit(False);
+        end;
+      end;
+      try
+        i := 0;
+        enRecord.StrictDelimiter := True;
+        szRecord.StrictDelimiter := True;
+        agRecord.StrictDelimiter := True;
+        enRecord.Delimiter := '|';
+        szRecord.Delimiter := '|';
+        agRecord.Delimiter := '|';
+        for lin in flines do
+        begin
+          i := i + 1;
+          case i of
+            1:
+              firstrec := lin;
+            2:
+              szRecord.DelimitedText := lin;
+            3:
+              agRecord.DelimitedText := lin;
+            4:
+              begin
+                enRecord.DelimitedText := lin;
+                obj1 := setFirstRecVal(firstrec, szRecord[9], agRecord[9], enRecord[9]);
+                Self.datamap.AddOrSetValue('000000', obj1);
+                Self.convertMktdtRecord2Map(szRecord.DelimitedText);
+                Self.convertMktdtRecord2Map(agRecord.DelimitedText);
+                Self.convertMktdtRecord2Map(lin);
+              end;
+          else
+            Self.convertMktdtRecord2Map(lin);
+          end;
+        end;
+        Result := True;
+      except
+        on E: Exception do
+        begin
+          Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fast, e.Message]));
+          Exit(False);
+        end;
+      end;
+    end;
+  finally
+    begin
+      flines.Free;
+      szRecord.Free;
+      agRecord.Free;
+      enRecord.Free;
     end;
   end;
-  flines.Free;
-{  szRecord.Clear;
-  agRecord.Clear;
-  enRecord.Clear;}
-  szRecord.Free;
-  agRecord.Free;
-  enRecord.Free;
 end;
 
 end.
