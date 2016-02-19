@@ -90,10 +90,9 @@ type
 
   public
     constructor Create(cover_num:Integer);
-    destructor Destroy; override;
-    function cover_data(d_map:TDictionary<string,tarrayex<variant>>;queue:TQueue<tarrayex<Variant>>):Integer;
-    function write_dbf(filename:string):Boolean;
-
+    function cover_data(d_map:TDictionary<string,tarrayex<variant>>;
+      queue:TQueue<tarrayex<Variant>>):Integer;
+    function write_dbf(filename: string): Boolean;
   end;
 
 { TSjsxxwrite }
@@ -353,12 +352,6 @@ begin
   max_cov_num:=cover_num;
 end;
 
-destructor TSjshqWrite.Destroy;
-begin
-
-  inherited;
-end;
-
 function TSjshqWrite.write_dbf(filename: string): Boolean;
 begin
 
@@ -380,7 +373,6 @@ end;
 
 function TSjsxxWrite.write_dbf(filename: string): Boolean;
 begin
-
 end;
 
 end.
