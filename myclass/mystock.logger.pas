@@ -9,6 +9,8 @@ unit mystock.logger;
 //          1 - Notice
 //          2 - Warning
 //          3 - Error
+//    使用 Tlogger.Instance生成logger实例
+//    使用releaseInstance释放logger实例
 //=======================================================================
 {$J+}
 interface
@@ -36,6 +38,7 @@ TLogger = class
     FwriteFile:Boolean;  //是否写日志
     FLogOpened:Boolean;  //日志文件是否已打开
     FAppName:string;
+    FInstancecou:Integer;
     procedure SetLogDir(const Value: string);
     procedure SetLogShower(const Value: TComponent);
     procedure SetAppName(const Value:string);
@@ -206,6 +209,7 @@ begin
   FLogOpened:=False;
   FAppName := ChangeFileExt(ExtractFileName(ParamStr(0)),'');
   SetLogDir('');
+  FInstancecou:=0;
 end;
 
 class function TLogger.Instance: Tlogger;
@@ -229,7 +233,9 @@ const
 begin
   case regues of
   FreeClass:;
-  GetClass:if not Assigned(FInstance) then FInstance:=CreateInstance;
+  GetClass:
+      if not Assigned(FInstance) then FInstance:=CreateInstance
+      else Inc(FInstancecou);
   SetNil:FInstance:=nil;
   end;
   Result:=FInstance;
@@ -237,7 +243,10 @@ end;
 
 class procedure TLogger.ReleaseInstance;
 begin
-  GetInstance(FreeClass).Free;
+  if Finstancecou>1 then
+     Dec(Finstancecou)
+  else
+     GetInstance(FreeClass).Free;
 end;
 
 end.
