@@ -101,6 +101,7 @@
         <DCCReference Include="sz_fix.pas"/>
         <DCCReference Include="sz_interface.pas"/>
         <DCCReference Include="DBFdirect.pas"/>
+        <DCCReference Include="..\myclass\mystock.logger.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
