@@ -38,7 +38,6 @@ TLogger = class
     FwriteFile:Boolean;  //是否写日志
     FLogOpened:Boolean;  //日志文件是否已打开
     FAppName:string;
-    FInstancecou:Integer;
     procedure SetLogDir(const Value: string);
     procedure SetLogShower(const Value: TComponent);
     procedure SetAppName(const Value:string);
@@ -209,7 +208,6 @@ begin
   FLogOpened:=False;
   FAppName := ChangeFileExt(ExtractFileName(ParamStr(0)),'');
   SetLogDir('');
-  FInstancecou:=0;
 end;
 
 class function TLogger.Instance: Tlogger;
@@ -234,8 +232,7 @@ begin
   case regues of
   FreeClass:;
   GetClass:
-      if not Assigned(FInstance) then FInstance:=CreateInstance
-      else Inc(FInstancecou);
+      if not Assigned(FInstance) then FInstance:=CreateInstance;
   SetNil:FInstance:=nil;
   end;
   Result:=FInstance;
@@ -243,9 +240,6 @@ end;
 
 class procedure TLogger.ReleaseInstance;
 begin
-  if Finstancecou>1 then
-     Dec(Finstancecou)
-  else
      GetInstance(FreeClass).Free;
 end;
 
