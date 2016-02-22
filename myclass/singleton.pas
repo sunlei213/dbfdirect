@@ -2,7 +2,7 @@ unit singleton;
 
 interface
 uses
- Windows,Classes, SysUtils,StdCtrls,ComCtrls,ComObj,Messages,Vcl.Dialogs;
+ Windows,Classes, SysUtils,StdCtrls,ComCtrls,ComObj,Messages,Vcl.Dialogs,Vcl.Forms;
 const
   WRITE_LOG_DIR = 'log\'; //记录日志默认目录
   WRITE_LOG_MIN_LEVEL = 2; //记录日志的最低级别，小于此级别只显示不记录
@@ -37,39 +37,7 @@ type
     property AppName:string read GetAppName write SetAppName;
 
   end;
-TLogger = class(TInterfacedObject,ILogger)
-  private
-    class var FInstance: Tlogger;
-    class var isfree:Boolean;
-    FCSLock: TRTLCriticalSection; //临界区
-    FLogFile: TextFile; //文件流
-    FLogShower: TComponent; //日志显示容器
-    FLogDir: String; //日志目录
-    FLogName: String; //日志名称
-    FwriteFile:Boolean;  //是否写日志
-    FLogOpened:Boolean;  //日志文件是否已打开
-    FAppName:string;
-    class constructor Create;
-    class destructor Destroy;
-    constructor Create;
-  protected
-    procedure ShowLog(Log:String; const LogLevel:Integer = 0);
-  public
-    class function Instance: Tlogger;
-    function GetLogDir:string;
-    function GetLogshower:TComponent;
-    function GetAppName:string;
-    procedure SetLogDir(const Value: string);
-    procedure SetLogShower(const Value: TComponent);
-    procedure SetAppName(const Value:string);
-    procedure WriteLog(Log:String; const LogLevel:Integer = 0); overload;
-    procedure WriteLog(Log:String; const Args: array of const; const LogLevel:Integer = 0);overload;
-    property LogFileDir: string read GetLogDir write SetLogDir;
-    // 显示日志的组件
-    property LogShower: TComponent read GetLogShower write SetLogShower;
-    property AppName:string read GetAppName write SetAppName;
-    destructor Destroy; override;
-end;
+
   TmyTest=class(TInterfacedObject,imy1)
     private
       stri:TStringList;
@@ -110,8 +78,54 @@ end;
   end;
 
 { TTestClass }
+ function GetLogInterface(path:string=''):ILogger;
 
 implementation
+const
+{$J+}  localInstance:ILogger=nil; {$J-}
+
+type
+TLogger = class(TInterfacedObject,ILogger)
+  private
+    FCSLock: TRTLCriticalSection; //临界区
+    FLogFile: TextFile; //文件流
+    FLogShower: TComponent; //日志显示容器
+    FLogDir: String; //日志目录
+    FLogName: String; //日志名称
+    FwriteFile:Boolean;  //是否写日志
+    FLogOpened:Boolean;  //日志文件是否已打开
+    FAppName:string;
+  protected
+    procedure ShowLog(Log:String; const LogLevel:Integer = 0);
+  public
+    constructor Create(path:string);
+    function GetLogDir:string;
+    function GetLogshower:TComponent;
+    function GetAppName:string;
+    procedure SetLogDir(const Value: string);
+    procedure SetLogShower(const Value: TComponent);
+    procedure SetAppName(const Value:string);
+    procedure WriteLog(Log:String; const LogLevel:Integer = 0); overload;
+    procedure WriteLog(Log:String; const Args: array of const; const LogLevel:Integer = 0);overload;
+    property LogFileDir: string read GetLogDir write SetLogDir;
+    // 显示日志的组件
+    property LogShower: TComponent read GetLogShower write SetLogShower;
+    property AppName:string read GetAppName write SetAppName;
+    destructor Destroy; override;
+end;
+
+function GetLogInterface(path:string=''):ILogger;
+begin
+  if not Assigned(localInstance) then
+    begin
+      System.TMonitor.Enter(Application);
+      if not Assigned(localInstance) then
+        localInstance:=TLogger.Create(path);
+      System.TMonitor.Exit(Application);
+    end;
+
+  Result:=localInstance;
+end;
 
 class constructor TTestClass.Create;
 begin
@@ -222,11 +236,6 @@ end;
 
 { TLogger }
 
-class constructor TLogger.Create;
-begin
-  TLogger.FInstance:=TLogger.Create;
-  TLogger.isfree:=False;
-end;
 
 constructor TLogger.Create;
 begin
@@ -241,12 +250,10 @@ end;
 
 destructor TLogger.Destroy;
 begin
-  if isfree then
-  begin
-    if FLogOpened then
-      CloseFile(FLogFile);
-    DeleteCriticalSection(FCSLock);
-  end;
+
+  if FLogOpened then
+   CloseFile(FLogFile);
+  DeleteCriticalSection(FCSLock);
   inherited Destroy;
 
 end;
@@ -266,11 +273,6 @@ begin
   Result:=FLogShower;
 end;
 
-class destructor TLogger.Destroy;
-begin
-  TLogger.isfree:=True;
-  if Assigned(TLogger.FInstance) then FreeAndNil(TLogger.FInstance);
-end;
 
 procedure TLogger.WriteLog(Log: string; const Args: array of const; const
   LogLevel: Integer = 0);
@@ -410,9 +412,5 @@ procedure TLogger.ShowLog(Log:String; const LogLevel:Integer = 0);
   end;
 
 
-class function TLogger.Instance: Tlogger;
-begin
-  Result:=FInstance;
-end;
 
 end.
