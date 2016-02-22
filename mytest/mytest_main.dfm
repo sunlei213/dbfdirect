@@ -21,7 +21,7 @@ object Form1: TForm1
     Width = 121
     Height = 21
     TabOrder = 0
-    Text = 'edt1'
+    Text = '1'
   end
   object btn1: TButton
     Left = 64

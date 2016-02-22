@@ -48,7 +48,7 @@ type
 
 var
   Form1: TForm1;
-  log:TLogger;
+  log:ILogger;
 
 implementation
 
@@ -65,9 +65,9 @@ var
   starr:TArray<string>;
   my:myintf;
   my1:TMyMsg;
-  log2:TLogger;
+  log2:ILogger;
 begin
-  log2:=TLogger.Instance;
+  log2:=GetLogInterface();;
   num[0]:=1;
   for I := 1 to 7 do
     num[i]:=num[i-1]*10;
@@ -90,7 +90,7 @@ begin
    queu.Enqueue(my);
   end;
   stopw.Stop;
-  mmo1.Lines.Add(Format('整型%d,%s循环%d次耗时%d毫秒',[k,st,i,stopw.ElapsedMilliseconds]));
+  log2.WriteLog(Format('整型%d,%s循环%d次耗时%d毫秒',[k,st,i,stopw.ElapsedMilliseconds]),2);
 end;
 
 procedure TForm1.btn2Click(Sender: TObject);
@@ -110,11 +110,11 @@ begin
   for I := 0 to queu.Count-1 do
   begin
    imy:=queu.Dequeue;
-   k:=imy.readdata;
-   imy.setdata(2,st);
+  k:=imy.readdata;
+//   imy.setdata(2,st);
   end;
   stopw.Stop;
-  mmo1.Lines.Add(Format('浮点%d,%d,%d循环%d次耗时%d毫秒',[k[0],k[1],queu.Count,i,stopw.ElapsedMilliseconds]));
+  log.WriteLog(Format('浮点%d,%d,%d循环%d次耗时%d毫秒',[k[0],k[1],queu.Count,i,stopw.ElapsedMilliseconds]),2);
 end;
 
 procedure TForm1.btn3Click(Sender: TObject);
@@ -135,14 +135,14 @@ begin
    st1:=va;
   end;
   stopw.Stop;
-  mmo1.Lines.Add(Format('浮点%s循环%d次耗时%d毫秒',[st1,i,stopw.ElapsedMilliseconds]));
+  log.WriteLog(Format('浮点%s循环%d次耗时%d毫秒',[st1,i,stopw.ElapsedMilliseconds]),2);
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
  stopw:=TStopwatch.Create;
  queu:=TQueue<myintf>.Create;
- log:= TLogger.Instance;
+ log:= GetLogInterface();
  log.LogShower:=mmo1;
  log.WriteLog('程序开始了',1);
 end;
@@ -151,7 +151,6 @@ procedure TForm1.FormDestroy(Sender: TObject);
 begin
   log.WriteLog('程序结束了',1);
   queu.Free;
-  log.ReleaseInstance;
 end;
 
 procedure TForm1.testintface(x1: myintf);
@@ -176,8 +175,6 @@ end;
 
 destructor TMyMsg.destroy;
 begin
-  SetLength(fmsg,0);
-  log.WriteLog(Self.str1,1);
   inherited;
 end;
 

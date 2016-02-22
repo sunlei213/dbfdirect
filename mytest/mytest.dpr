@@ -1,6 +1,7 @@
 program mytest;
 
 uses
+  FastMM4,
   Vcl.Forms,
   mytest_main in 'mytest_main.pas' {Form1},
   singleton in '..\myclass\singleton.pas';
