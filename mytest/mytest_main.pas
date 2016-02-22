@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils,System.Generics.Collections ,System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,system.Diagnostics, Vcl.StdCtrls, mystock.logger;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,system.Diagnostics, Vcl.StdCtrls, singleton;
 
 type
   myintf=interface
@@ -78,7 +78,6 @@ begin
   my1:=TMyMsg.create;
   my1.setdata(2,'destroy');
   my:=my1;
-  testintface(my);
   testintface(my);
   log2.WriteLog('log2,button1',2);
   ShowMessage('test');
