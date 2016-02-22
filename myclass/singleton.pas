@@ -94,13 +94,16 @@ end;
   private
     class var FInstance: TTestClass;
     class var isfree:Boolean;
+    class var IInstance:imy2;
+    var
     st:string;
     stl:TStringList;
     class constructor Create;
     class destructor Destroy;
-    constructor Create;
+    constructor Createl;
   public
     class function GetInstance: TTestClass;
+    class function GetInterface:imy2;
     destructor Destroy;override;
     procedure show;
     procedure setstr(str1:string);
@@ -112,11 +115,12 @@ implementation
 
 class constructor TTestClass.Create;
 begin
-  TTestClass.FInstance:=TTestClass.Create;
+  TTestClass.FInstance:=TTestClass.Createl;
+  TTestClass.IInstance:=TTestClass.FInstance;
   TTestClass.isfree:=True;
 end;
 
-constructor TTestClass.Create;
+constructor TTestClass.Createl;
 begin
   inherited;
   st:='初始成功';
@@ -140,8 +144,8 @@ class destructor TTestClass.Destroy;
 begin
   ShowMessage('单例实例删除');
     TTestClass.isfree:=False;
-  if Assigned(FInstance) then
-    FreeAndNil(FInstance);
+  if Assigned(IInstance) then
+     IInstance:=nil;
  end;
 
 class function TTestClass.GetInstance: TTestClass;
@@ -149,6 +153,11 @@ begin
   Result := FInstance;
 end;
 
+
+class function TTestClass.GetInterface: imy2;
+begin
+  Result:=IInstance;
+end;
 
 procedure TTestClass.setstr(str1: string);
 begin
