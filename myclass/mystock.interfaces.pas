@@ -25,6 +25,24 @@ type
 
   end;
 
+  IDBField=interface
+    function GetName:AnsiString;
+	  function GetType:ansichar;
+	  function GetLength:Byte;
+	  function GetDeci:Byte;
+	  function format(obj:variant):string;
+	  function parse(s:string):variant;
+	  procedure SetName(na:string);
+	  procedure SetType(ty:ansichar);
+	  procedure SetLength(le:integer);
+	  procedure SetDeci(deci:integer);
+    property name:AnsiString read SetName write SetName;
+    property Field_type:AnsiChar read SetType write SetType;
+    property length:Byte read SetLength write SetLength;
+    property dec:Byte read GetDeci write SetDeci;
+
+  end;
+
   Tstock = class(TInterfacedObject, Idata_make)
   private
 
