@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils,System.Generics.Collections ,System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,system.Diagnostics, Vcl.StdCtrls, singleton;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,system.Diagnostics, Vcl.StdCtrls, mystock.singleinf.logger;
 
 type
   myintf=interface
@@ -21,7 +21,6 @@ type
     function recover(st:string):Integer;
   public
     constructor create;
-    destructor destroy;override;
     procedure setdata(cou:Integer;st1:string);
     function readdata:TArray<Integer>;virtual;
     procedure show;
@@ -173,10 +172,6 @@ begin
     inarr[i]:=inarr[i-1]*10;
 end;
 
-destructor TMyMsg.destroy;
-begin
-  inherited;
-end;
 
 function TMyMsg.readdata: TArray<Integer>;
 var
