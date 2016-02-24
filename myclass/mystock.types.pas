@@ -186,6 +186,11 @@ type
     NoSwitch: UInt32//  开关个数
   end;
 
+  TExtFuns = class(Tobject)
+  public
+    class function IfThen<T>(AValue: Boolean; const ATrue, AFalse: T): T; inline;
+  end;
+
 
 function strtospace(sl: string; Leng: Integer; var outchar: array of AnsiChar): Boolean;
 
@@ -196,6 +201,17 @@ function NET2CPU(v: Uint32): UInt32; overload;
 function NET2CPU(v: UInt64): UInt64; overload;
 
 implementation
+
+{ TExtFuns }
+
+class function TExtFuns.IfThen<T>(AValue: Boolean; const ATrue, AFalse: T): T;
+begin
+  if AValue then
+    Result := ATrue
+  else
+    Result := AFalse;
+end;
+
 
 function strtospace(sl: string; Leng: Integer; var outchar: array of AnsiChar): Boolean;
 var
