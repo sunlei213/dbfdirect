@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,Generics.Collections,
-  arrayex,fmtbcd,DBFdirect,System.IOUtils,system.Types, Vcl.Buttons ,
+  arrayex,fmtbcd,System.IOUtils,system.Types, Vcl.Buttons ,mystock.singleinf.logger,mystock.types,mystock.interfaces,mystock.dbfclass,
   Vcl.ExtCtrls;
 
 type
@@ -18,7 +18,7 @@ type
     function getfjy: string;
     function getfreg:integer;
   public
-    logger:tstringlist;
+    logger:ILogger;
     constructor Create;
     Destructor Destroy;override;
     property fast:string read getfast write ffastpath;
@@ -40,7 +40,7 @@ type
     procedure convertMktdtRecord2Map(rec:String);
     procedure convertFJYRecord2Map(rec:String;map:TDictionary<string,tarrayex<variant>>);
     function setFirstRecVal(firstRec,szTradePrice,agTradePrice,bgTradePrice:string):tarrayex<variant>;
-    function initHead:Tlist<TDBfield>;
+    function initHead:Tlist<IDBfield>;
     function firstRecValFormat(headVals:TArrayEx<string>):tarrayex<variant>;
   protected
     procedure Execute; override;
@@ -99,6 +99,7 @@ var
   I: Integer;
 begin
   g_entry:=TaskEntry.Create;
+  g_entry.logger.LogShower:=mmo1;
   entry1:=TStringList.Create;
   holiday:=TStringList.Create;
   filepath:=ExtractFilePath(Application.ExeName);
@@ -201,7 +202,7 @@ var
 begin
   datetime:=Now;
   time_now:=FormatDateTime('hh:mm',datetime);
-  if mmo1.Lines.Count>15 then
+  if mmo1.Lines.Count>30 then
     begin
       mmo1.Lines.Clear;
       for I := 0 to 2 do mmo1.Lines.Add('');
@@ -255,7 +256,6 @@ procedure TForm2.tran_stopClick(Sender: TObject);
 begin
   if mythread<>nil then
      mythread.Terminate;
-  mmo1.Lines.AddStrings(g_entry.logger);
   tmr1.Enabled:=False;
   tran_stop.Enabled:=False;
   tran_start.Enabled:=True;
@@ -265,13 +265,12 @@ end;
 
 constructor TaskEntry.Create;
 begin
-  logger:=tstringlist.Create;
+  logger:=GetLogInterface();
   inherited;
 end;
 
 Destructor TaskEntry.Destroy;
 begin
-  Self.logger.Free;
   inherited;
 end;
 
@@ -303,7 +302,7 @@ procedure TaskRunThread.convertFJYRecord2Map(rec: String;
 var
 sl1,cast:tstringlist;
 obj:tarrayex<variant>;
-s1,id,type1:string;
+id,type1:string;
 i:Integer;
 begin
   if Trim(rec)='' then Exit;
@@ -533,21 +532,12 @@ begin
                      begin
                        form2.lbl1.Caption:=Format('%d:三段使用时间分别为：%d,%d,%d，总时间为%d,%d',[i,h1-start,h2-h1,h3-h2,hlong,h4-start])
                      end);
-         if g_entry.logger.Count>0 then
-           Synchronize(procedure
-                       begin
-                         Form2.mmo1.Lines.AddStrings(g_entry.logger);
-                         g_entry.logger.Clear;
-                       end
-                       );
-
        end;
      except on E: Exception do
        begin
-       self.entry.logger.Add(e.Message);
+       self.entry.logger.WriteLog(e.Message+'错误类:'+e.ClassName,2);
        Synchronize(procedure
                    begin
-                     Form2.mmo1.Lines.AddStrings(g_entry.logger);
                      Form2.tran_start.Enabled:=True;
                      Form2.tran_stop.Enabled:=False;
                    end
@@ -577,11 +567,11 @@ begin
    Result:=fr;
 end;
 
-function TaskRunThread.initHead: Tlist<TDBfield>;
+function TaskRunThread.initHead: Tlist<IDBfield>;
 var
-fdl:TList<TDBField>;
+fdl:TList<IDBField>;
 begin
-  fdl:=TList<TDBField>.Create;
+  fdl:=TList<IDBField>.Create;
   fdl.Add(TDBField.Create('S1', 'C', 6, 0));
   fdl.Add(TDBField.Create('S2', 'C', 8, 0));
   fdl.Add(TDBField.Create('S3', 'N', 8, 3));
@@ -688,7 +678,7 @@ begin
         write1.wirteStream2File(Self.entry.show);
       except
         on E: Exception do
-          Self.entry.logger.Add(format('文件%s写入失败，错误原因%s', [self.entry.fast, e.Message]));
+          Self.entry.logger.WriteLog('文件%s写入失败，错误类：%s,错误原因%s', [self.entry.show, e.ClassName, e.Message],2);
       end;
     end;
 //  for st1 in stl do Self.datamap.Items[st1]:=nil;
@@ -714,7 +704,7 @@ begin
     except
       on E: Exception do
       begin
-        Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fjy, e.Message]));
+        Self.entry.logger.WriteLog('文件%s读取失败，错误类：%s,错误原因%s', [self.entry.fjy, e.ClassName, e.Message],2);
         Exit(False);
       end;
     end;
@@ -730,7 +720,7 @@ begin
     except
       on E: Exception do
       begin
-        Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fjy, e.Message]));
+        Self.entry.logger.WriteLog('文件%s读取失败，错误类：%s,错误原因%s', [self.entry.fjy, e.ClassName, e.Message],2);
         Exit(False);
       end;
     end;
@@ -759,7 +749,7 @@ begin
       except
         on E: Exception do
         begin
-          Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fast, e.Message]));
+          Self.entry.logger.WriteLog('文件%s读取失败，错误类：%s,错误原因%s', [self.entry.fast, e.ClassName, e.Message],2);
           Exit(False);
         end;
       end;
@@ -798,7 +788,7 @@ begin
       except
         on E: Exception do
         begin
-          Self.entry.logger.Add(format('文件%s读取失败，错误原因%s', [self.entry.fast, e.Message]));
+          Self.entry.logger.WriteLog('文件%s读取失败，错误类：%s,错误原因%s', [self.entry.fast, e.ClassName, e.Message],2);
           Exit(False);
         end;
       end;

@@ -39,9 +39,8 @@ object Form2: TForm2
   object lbl1: TLabel
     Left = 72
     Top = 139
-    Width = 16
+    Width = 3
     Height = 13
-    Caption = 'lbl1'
   end
   object lbl2: TLabel
     Left = 144
@@ -97,20 +96,21 @@ object Form2: TForm2
     OnClick = tran_stopClick
   end
   object mmo1: TMemo
-    Left = 72
+    Left = 32
     Top = 232
-    Width = 281
+    Width = 393
     Height = 161
     Lines.Strings = (
       'mmo1')
+    ScrollBars = ssBoth
     TabOrder = 2
   end
   object set_btn1: TButton
-    Left = 160
+    Left = 192
     Top = 184
     Width = 75
     Height = 25
-    Caption = #35774#32622#30446#24405
+    Caption = #35774#32622#21442#25968
     TabOrder = 3
     OnClick = set_btn1Click
   end
@@ -118,7 +118,7 @@ object Form2: TForm2
     Enabled = False
     Interval = 30000
     OnTimer = tmr1Timer
-    Left = 408
-    Top = 392
+    Left = 432
+    Top = 416
   end
 end
