@@ -216,13 +216,17 @@ end;
 function strtospace(sl: string; Leng: Integer; var outchar: array of AnsiChar): Boolean;
 var
   I: Integer;
+  s:AnsiString;
 begin
+  s:=AnsiString(sl);
   try
     FillChar(outchar, leng, 32);
-    if Length(sl) > 0 then
-      for I := 0 to Length(sl) - 1 do
+    if Length(s)>Leng then
+      Exit(False);
+    if Length(s) > 0 then
+      for I := 0 to Length(s) - 1 do
       begin
-        outchar[i] := AnsiChar(sl[i + 1]);
+        outchar[i] := AnsiChar(s[i + 1]);
       end;
     Result := True;
   except

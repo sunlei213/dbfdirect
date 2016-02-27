@@ -7,12 +7,18 @@ uses
 
 type
 
-  Idata_recive=interface
+  Idata_CMD= interface
+    procedure run_command(map:TDictionary<string,TArrayEx<Variant>>);
+  end;
 
+  Idata_recive=interface
+    function start:Boolean;
+    function stop:Boolean;
+    function make_command:Idata_CMD;
   end;
 
   Idata_make=interface
-    function Serial(query: TQueue<tarrayex<Variant>>; body_ln: UInt32): Boolean;
+    function Serial: Idata_CMD;
     function getdate(body_ln: UInt32): Boolean;
   end;
 
@@ -21,8 +27,9 @@ type
     function  write_dbf(filename:string):Boolean;
   end;
 
-  Idata_MSG= interface
-
+  Idata_task=interface
+    procedure update;
+    function getmap:TDictionary<string,TArrayEx<Variant>>;
   end;
 
   IDBField=interface
@@ -43,6 +50,20 @@ type
 
   end;
 
+  Ivisiter=interface
+    procedure update(ls:TStringList);
+  end;
+
+  Ttask = class(TInterfacedObject, Idata_task)
+  protected
+    fdbfpath:string;
+    ffreg:integer;
+    fmap:TDictionary<string,TArrayEx<Variant>>;
+  public
+    procedure update;virtual;abstract;
+    function getmap:TDictionary<string,TArrayEx<Variant>>;
+  end;
+
   Tstock = class(TInterfacedObject, Idata_make)
   private
 
@@ -53,20 +74,20 @@ type
     data_stream: TArrayEx<Variant>;
     procedure recvbuff;
   public
-    constructor Create(AClient: TIdTCPClient; i: UInt32);
-    function Serial(query: TQueue<tarrayex<Variant>>; body_ln: UInt32): Boolean;
+    constructor Create(AClient: TIdTCPClient; msg_type: UInt32);
+    function Serial: Idata_CMD;virtual; abstract;
     function getdate(body_ln: UInt32): Boolean; virtual; abstract;
   end;
 implementation
 { Tstock }
 
 
-constructor Tstock.Create(AClient: TIdTCPClient; i: UInt32);
+constructor Tstock.Create(AClient: TIdTCPClient; msg_type: UInt32);
 var
   il: uin32;
 begin
   Self.AClient := AClient;
-  il.i32 := i;
+  il.i32 := msg_type;
   chk := il.by32[3] + il.by32[2] + il.by32[1] + il.by32[0];
 end;
 
@@ -81,15 +102,13 @@ begin
     Self.chk := Self.chk + self.tby[i];
 end;
 
-function Tstock.Serial(query: TQueue<tarrayex<Variant>>; body_ln: UInt32): Boolean;
+
+
+{ Ttask }
+
+function Ttask.getmap: TDictionary<string, TArrayEx<Variant>>;
 begin
-  if getdate(body_ln) then
-  begin
-    query.Enqueue(data_stream);
-    Result := True;
-  end
-  else
-    Result := False;
+  Result:=fmap;
 end;
 
 end.
