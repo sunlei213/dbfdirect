@@ -6,9 +6,12 @@ uses
   mystock.types,IdGlobal, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient;
 
 type
+  Iwrite=interface
+
+  end;
 
   Idata_CMD= interface
-    procedure run_command(map:TDictionary<string,TArrayEx<Variant>>);
+    procedure run_command(regs:TList<Iwrite>);
   end;
 
   Idata_recive=interface
