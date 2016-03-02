@@ -33,22 +33,33 @@ type
     property length: Byte read GetLength write SetLength;
     property dec: Byte read GetDeci write SetDeci;
   end;
+{ TDBFRead }
 
-  TDBFWrite=class
+  TDBFWrite=class(TInterfacedObject, IDBFRead, IDBFwrite)
     private
       WriteBuffStream:TmemoryStream;
       fields:Tlist<IDBField>;
       dbfEncoding:TEncoding;
+      fDBhead:DBHead;
+      frecstarPos:Integer;
+      fISread:Boolean;
       procedure writeHeader(recCount:integer);
       procedure writeFieldHeader(field:IDBField;loc:integer);
+      procedure ReadHeader;
+      procedure ReadFieldHeader;
     public
       constructor Create(DBfields:Tlist<IDBfield>);
+      constructor CreateRD;
       destructor Destroy;override;
       procedure initHead2Stream(recCount:integer);
       procedure addRecord(delflag:boolean;objs:tarrayex<variant>);
       procedure addRecord0(delflag:boolean;objs:tarrayex<variant>);
       procedure wirteStream2File(filename:string);
       procedure SetEncode(encode:TEncoding);
+      procedure initStream2Head;
+      function readRecord:tarrayex<variant>;
+      function ReadFile2Stream(filename:string):Boolean;
+      procedure SetEncoder(encode:TEncoding);
   end;
 
 implementation
@@ -431,39 +442,150 @@ end;
 
 constructor TDBFWrite.Create(DBfields: Tlist<IDBfield>);
 begin
+  fISread:=False;
   self.fields:=DBfields;
+  self.dbfEncoding:=TEncoding.Default;
+  self.WriteBuffStream:=tmemorystream.Create;
+end;
+
+constructor TDBFWrite.CreateRD;
+begin
+  fISread:=True;
+  self.fields:=TList<IDBField>.Create;
   self.dbfEncoding:=TEncoding.Default;
   self.WriteBuffStream:=tmemorystream.Create;
 end;
 
 destructor TDBFWrite.Destroy;
 begin
-  self.fields.clear;
-  Self.fields.Free;
   Self.WriteBuffStream.Free;
+  if fISread then
+  begin
+  Self.fields.Clear;
+  Self.fields.Free;
+  end;
   inherited;
 end;
 
 procedure TDBFWrite.initHead2Stream(recCount: integer);
 var
-i,j:integer;
+  i, j: integer;
 begin
   try
     begin
-    self.writeHeader(recCount);
-    j:=1;
-    for I := 0 to self.fields.Count-1 do
-    begin
-      self.writeFieldHeader(self.fields[i],j);
-      j:=j+self.fields[i].getLength;
+      self.writeHeader(recCount);
+      j := 1;
+      for I := 0 to self.fields.Count - 1 do
+      begin
+        self.writeFieldHeader(self.fields[i], j);
+        j := j + self.fields[i].getLength;
+      end;
+      self.WriteBuffStream.WriteData(13);
     end;
-    self.WriteBuffStream.WriteData(13);
-    end;
-  except on E: Exception do raise E;
+  except
+    on E: Exception do
+      raise E;
   end;
 end;
 
+procedure TDBFWrite.initStream2Head;
+begin
+  try
+    ReadHeader;
+    ReadFieldHeader;
+  except
+    on E: Exception do
+      raise E;
+  end;
+end;
+
+procedure TDBFWrite.ReadFieldHeader;
+var
+ i,fid_coun:Integer;
+ fid:DBField;
+begin
+  fid_coun:=(Self.fDBhead.DBHeadLen div 32)-1;
+  fields.Clear;
+  for I := 0 to fid_coun-1 do
+  begin
+    self.WriteBuffStream.ReadBuffer(fid,sizeof(DBField));
+    fields.Add(TDBField.CreateFromField(fid));
+  end;
+end;
+
+function TDBFWrite.ReadFile2Stream(filename: string):Boolean;
+var
+  desf: TFileStream;
+begin
+  try
+    begin
+      if FileExists(filename) then
+        desf := tfilestream.Create(filename, fmOpenReadWrite or fmShareDenyNone)
+      else
+        Exit(False);
+    end;
+  except
+    on E: Exception do
+      raise E;
+  end;
+  try
+    try
+      begin
+        WriteBuffStream.LoadFromStream(desf);
+        Result := True;
+      end;
+    except
+      on E: Exception do
+      begin
+        raise E;
+      end;
+    end;
+  finally
+    desf.Free;
+  end;
+end;
+
+procedure TDBFWrite.ReadHeader;
+begin
+  Self.WriteBuffStream.Position:=0;
+  self.WriteBuffStream.ReadBuffer(fDBhead,sizeof(DBhead));
+end;
+
+function TDBFWrite.readRecord: tarrayex<variant>;
+var
+  j, k: integer;
+  byte0, byte1: tbytes;
+  ch: Byte;
+  st: string;
+  objs: TArrayex<Variant>;
+begin
+  if WriteBuffStream.Position < frecstarPos then
+    WriteBuffStream.Position := frecstarPos;
+  WriteBuffStream.Position := WriteBuffStream.Position - ((WriteBuffStream.Position - frecstarPos) mod fDBhead.DBRecLen);
+  self.WriteBuffStream.ReadData(ch);
+  SetLength(byte0, self.fDBhead.DBRecLen - 1);
+  self.WriteBuffStream.ReadBuffer(byte0, length(byte0));
+  objs.SetLen(fields.Count);
+  k := 0;
+  st := '';
+  for j := 0 to self.fields.Count - 1 do
+  begin
+    SetLength(byte1, self.fields[j].length);
+    move(byte0[k], byte1[0], self.fields[j].length);
+    st := Self.dbfEncoding.GetString(byte1);
+    objs[j] := st;
+    k := k + self.fields[j].length;
+  end;
+  Result := objs;
+
+end;
+
 procedure TDBFWrite.SetEncode(encode: TEncoding);
+begin
+  self.dbfEncoding:=encode;
+end;
+
+procedure TDBFWrite.SetEncoder(encode: TEncoding);
 begin
   self.dbfEncoding:=encode;
 end;
