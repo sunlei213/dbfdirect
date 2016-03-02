@@ -19,6 +19,7 @@ type
     ftype_coun:tstringlist;
     fvisiters:tlist<Ivisiter>;
     fuser,fpasswd:string;
+    fstatus:rec_stat;
     function send_login:Boolean;
     function check(value: TIdBytes; chk:UInt32): UInt32;
     function make_data:Idata_CMD;
@@ -34,6 +35,7 @@ type
     function start: Boolean;
     function stop: Boolean;
     function make_command: Idata_CMD;
+    function getstatus:rec_stat;
     property ip:string read fip write fip;
     property port:Integer read fport write fport;
     property heart:UInt32 read fheart write fheart;
@@ -42,10 +44,36 @@ type
     property dataIStrue:Boolean read fdataIStrue;
   end;
 
+  Trecive_file = class(TInterfacedObject, Idata_recive)
+  private
+          { private declarations }
+    fmem:TMemoryStream;
+    fType:Integer;
+    fdataIStrue:Boolean;
+    ffilename:string;
+    ftype_coun:tstringlist;
+    fvisiters:tlist<Ivisiter>;
+    fstatus:rec_stat;
+    function make_data:Idata_CMD;
+  protected
+          { protected declarations }
+  public
+          { public declarations }
+    constructor Create;
+    destructor Destroy; override;
+    procedure vi_reg(vi:ivisiter);
+    function start: Boolean;
+    function stop: Boolean;
+    function make_command: Idata_CMD;
+    function getstatus:rec_stat;
+    property filename:string read ffilename write ffilename;
+    property dataIStrue:Boolean read fdataIStrue;
+  end;
+
   Tstock_hq = class(Tstock)
   private
     stock_body: stock_data;
-    mden_body: MDEntry;
+    mden_body: TArrayEx<MDEntry>;
     data_size, hq_size: Integer;
   protected
   public
@@ -131,6 +159,7 @@ var
   I: Integer;
   m: Integer;
   k: Integer;
+  hq_md:MDEntry;
 begin
   trans1.i32 := body_ln;
   chk := chk + trans1.by32[3] + trans1.by32[2] + trans1.by32[1] + trans1.by32[0];
@@ -144,29 +173,31 @@ begin
   stock_body.TotalVolumeTrade := NET2CPU(stock_body.TotalVolumeTrade);
   stock_body.TotalValueTrade := NET2CPU(stock_body.TotalValueTrade);
   stock_body.NoMDEntries := NET2CPU(stock_body.NoMDEntries);
+  mden_body.SetLen(stock_body.NoMDEntries);
   for I := 0 to stock_body.NoMDEntries - 1 do
   begin
     SetLength(tby, 0);
     SetLength(tby, hq_size);
     recvbuff;
-    BytesToRaw(tby, mden_body, hq_size);
-    mden_body.MDEntryPx := NET2CPU(mden_body.MDEntryPx);
-    mden_body.MDEntrySize := NET2CPU(mden_body.MDEntrySize);
-    mden_body.MDPriceLevel := NET2CPU(mden_body.MDPriceLevel);
-    mden_body.NumberOfOrders := NET2CPU(mden_body.NumberOfOrders);
-    mden_body.NoOrders := NET2CPU(mden_body.NoOrders);
-        //mden_body := mdenarr[i];
+    BytesToRaw(tby, hq_md, hq_size);
+    hq_md.MDEntryPx := NET2CPU(hq_md.MDEntryPx);
+    hq_md.MDEntrySize := NET2CPU(hq_md.MDEntrySize);
+    hq_md.MDPriceLevel := NET2CPU(hq_md.MDPriceLevel);
+    hq_md.NumberOfOrders := NET2CPU(hq_md.NumberOfOrders);
+    hq_md.NoOrders := NET2CPU(hq_md.NoOrders);
+        //hq_md[] := mdenarr[];
          {st:=Format('MDEntrieno=%d,MDEntryType=%s,MDEntryPx=%.6n,MDEntrySize=%d,MDPriceLevel=%d,NumberOfOrders=%d,NoOrders=%d',
-                     [i+1,trim(mden_body.MDEntryType),mden_body.MDEntryPx/1000000.00,mden_body.MDEntrySize,mden_body.MDPriceLevel,mden_body.NumberOfOrders,mden_body.NoOrders]);
+                     [+1,trim(hq_md[].MDEntryType),hq_md[].MDEntryPx/1000000.00,hq_md[].MDEntrySize,hq_md[].MDPriceLevel,hq_md[].NumberOfOrders,hq_md[].NoOrders]);
            }
-    if mden_body.NoOrders <> 0 then
-      for m := 0 to mden_body.NoOrders - 1 do
+    if hq_md.NoOrders <> 0 then
+      for m := 0 to hq_md.NoOrders - 1 do
       begin
         trans64.i64 := AClient.Socket.ReadInt64;
           //  st:=st+format('±ÊÊý%d£º%d',[m,trans64.i64]);
         for k := 7 downto 0 do
           chk := chk + trans64.by64[k];
       end;
+    mden_body[i]:=hq_md;
   end;
   l := AClient.Socket.ReadInt32;
   chk := chk mod 256;
@@ -375,6 +406,11 @@ begin
   inherited;
 end;
 
+function Trecive_net.getstatus: rec_stat;
+begin
+ Result:=fstatus;
+end;
+
 function Trecive_net.make_command: Idata_CMD;
 var
   t_heat: TIdBytes;
@@ -401,7 +437,8 @@ begin
       isnodata := True;
     end;
     sleep(10);
-    Result:=tnocmd.Create
+    Result:=tnocmd.Create;
+    fdataIStrue:=True;
   end;
   endtime := TThread.GetTickCount;
   if isnodata and ((endtime - sev_heart) > heart * 2) then
@@ -411,6 +448,12 @@ begin
     cli_heart := TThread.GetTickCount;
     fAC.Socket.WriteDirect(t_heat);
   end;
+  if (not fdataIStrue) then
+    fstatus := DataErr
+  else if isnodata then
+    fstatus := NoData
+  else
+    fstatus := HasData;
 
 end;
 
@@ -584,6 +627,49 @@ end;
 procedure Trecive_net.vi_reg(vi: ivisiter);
 begin
   fvisiters.Add(vi);
+end;
+
+{ Trecive_file }
+
+constructor Trecive_file.Create;
+begin
+
+end;
+
+destructor Trecive_file.Destroy;
+begin
+
+  inherited;
+end;
+
+function Trecive_file.getstatus: rec_stat;
+begin
+
+end;
+
+function Trecive_file.make_command: Idata_CMD;
+begin
+
+end;
+
+function Trecive_file.make_data: Idata_CMD;
+begin
+
+end;
+
+function Trecive_file.start: Boolean;
+begin
+
+end;
+
+function Trecive_file.stop: Boolean;
+begin
+
+end;
+
+procedure Trecive_file.vi_reg(vi: ivisiter);
+begin
+
 end;
 
 end.
