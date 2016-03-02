@@ -3,6 +3,10 @@ unit mystock.types;
 interface
 
 type
+  Enum_CMD = (SZNoData,SHup,SZup);
+  Dbf_Type = (SJSHQ,SJSZS,SJSXXN,SHOW);
+  rec_stat = (DataErr,NoData,HasData,FileEnd);
+
   DBHead = record
     dbtype: byte;
     dbdate: array[0..2] of byte;
