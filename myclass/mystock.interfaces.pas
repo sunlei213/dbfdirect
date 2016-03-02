@@ -6,17 +6,26 @@ uses
   mystock.types,IdGlobal, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient;
 
 type
+  Ilocker=interface
+    procedure Lock;
+    procedure UnLock;
+  end;
   Iwrite=interface
-
+    procedure update;
+    function getmap:TDictionary<string,tarrayex<variant>>;
+    function gettype:Dbf_Type;
+    property map:TDictionary<string,tarrayex<variant>> read getmap;
+    property w_type:Dbf_Type read gettype;
   end;
 
   Idata_CMD= interface
-    procedure run_command(regs:TList<Iwrite>);
+    function run_command(regs:TList<Iwrite>):Enum_CMD;
   end;
 
   Idata_recive=interface
     function start:Boolean;
     function stop:Boolean;
+    function getstatus:rec_stat;
     function make_command:Idata_CMD;
   end;
 
@@ -51,6 +60,21 @@ type
     property length:Byte read GetLength write SetLength;
     property dec:Byte read GetDeci write SetDeci;
 
+  end;
+
+  IDBFRead=interface
+    procedure initStream2Head;
+    function readRecord:tarrayex<variant>;
+    function ReadFile2Stream(filename:string):Boolean;
+    procedure SetEncoder(encode:TEncoding);
+  end;
+
+  IDBFwrite=interface
+    procedure initHead2Stream(recCount:integer);
+    procedure addRecord(delflag:boolean;objs:tarrayex<variant>);
+    procedure addRecord0(delflag:boolean;objs:tarrayex<variant>);
+    procedure wirteStream2File(filename:string);
+    procedure SetEncode(encode:TEncoding);
   end;
 
   Ivisiter=interface
