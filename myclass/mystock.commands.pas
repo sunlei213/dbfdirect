@@ -2,99 +2,144 @@ unit mystock.commands;
 
 interface
 uses
-  mystock.types,mystock.interfaces,Generics.Collections, ArrayEx, System.SysUtils, System.Variants, System.Classes,system.Math;
+  mystock.types,mystock.interfaces,system.Classes, Generics.Collections, ArrayEx, System.SysUtils, System.Variants, System.Classes,system.Math;
 type
-  TNoCmd=class(TInterfacedObject, Idata_CMD )
+
+{ TSZCmd }
+
+  TCmd = class(TInterfacedObject, Idata_CMD)
+  private
+    data:TArrayEx<Variant>;
+  protected
+
   public
-    procedure run_command(regs:TList<Iwrite>);
+    constructor Create(da:TArrayEx<Variant>);
+    destructor Destroy; override;
+    function run_command(regs:TList<Iwrite>):Enum_CMD;virtual;abstract;
+  end;
+
+  TNoCmd=class(TInterfacedObject, Idata_CMD)
+  public
+    function run_command(regs:TList<Iwrite>):Enum_CMD;
   end;
 
 { TSZHQCmd }
 
-  TSZHQCmd = class(TInterfacedObject, Idata_CMD)
+  TSZHQCmd = class(TCmd)
   private
 
   protected
 
   public
-    constructor Create;
     destructor Destroy; override;
-    procedure run_command(regs:TList<Iwrite>);
+    function run_command(regs:TList<Iwrite>):Enum_CMD;
 
   end;
 { TSZZSCmd }
 
-  TSZZSCmd = class(TInterfacedObject, Idata_CMD)
+  TSZZSCmd = class(TCmd)
   private
 
   protected
 
   public
-    constructor Create;
     destructor Destroy; override;
-    procedure run_command(regs:TList<Iwrite>);
+    function run_command(regs:TList<Iwrite>):Enum_CMD;
 
   end;
 { TSZXXCmd }
 
-  TSZXXCmd = class(TInterfacedObject, Idata_CMD)
+  TSZXXCmd = class(TCmd)
   private
 
   protected
 
   public
-    constructor Create;
     destructor Destroy; override;
-    procedure run_command(regs:TList<Iwrite>);
+    function run_command(regs:TList<Iwrite>):Enum_CMD;
 
   end;
 { TShowCmd }
 
-  TShowCmd = class(TInterfacedObject, Idata_CMD)
+  TShowCmd = class(TCmd)
   private
 
   protected
 
   public
-    constructor Create;
     destructor Destroy; override;
-    procedure run_command(regs:TList<Iwrite>);
-
+    function run_command(regs:TList<Iwrite>):Enum_CMD;
   end;
 
 implementation
 
+
 { TNoCmd }
 
-procedure TNoCmd.run_command(regs:TList<Iwrite>);
+function TNoCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
 begin
-
+  Result:=SZNoData;
 end;
 
 { TSZHQCmd }
 
-constructor TSZHQCmd.Create;
-begin
-
-end;
 
 destructor TSZHQCmd.Destroy;
 begin
-
   inherited;
 end;
 
-procedure TSZHQCmd.run_command(regs: TList<Iwrite>);
+function TSZHQCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+var
+  reg,reg1:Iwrite;
+  id:string;
+  I: Integer;
+  haskey:Boolean;
 begin
+  id := data[0];
+  Result := SZNoData;
+  for reg in regs do
+  begin
+    if (reg.w_type = SJSXXN) then
+    begin
+      MonitorEnter(reg.map);
+      try
+        haskey := reg.map.ContainsKey(id);
+        if haskey then
+          data[1] := (reg.map[id])[1];
+      finally
+        MonitorExit(reg.map);
+      end;
+      if haskey then
+        for reg1 in regs do
+          if (reg1.w_type = SJSHQ) then
+          begin
+            MonitorExit(reg1.map);
+            try
+              if (reg1.map.ContainsKey(id)) then
+              begin
+                for I := 0 to data.Size - 1 do
+                  (reg.map[id])[i] := data[i];
+                Result := SZup;
+              end
+              else
+              begin
+                reg1.map.AddOrSetValue(id, data);
+                Result := SZup;
+              end;
+            finally
+              MonitorExit(reg1.map);
 
+            end;
+
+          end;
+    end;
+  end;
 end;
+
 
 { TSZZSCmd }
 
-constructor TSZZSCmd.Create;
-begin
-
-end;
 
 destructor TSZZSCmd.Destroy;
 begin
@@ -102,17 +147,37 @@ begin
   inherited;
 end;
 
-procedure TSZZSCmd.run_command(regs: TList<Iwrite>);
+function TSZZSCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+var
+  reg, reg1: Iwrite;
+  id: string;
+  I: Integer;
 begin
+  id := data[0];
+  Result := SZNoData;
+  for reg1 in regs do
+    if (reg1.w_type = SJSZS) then
+    begin
+      MonitorEnter(reg1.map);
+      try
+        if (reg1.map.ContainsKey(id)) then
+        begin
+          data[1]:= (reg.map[id])[1];
+          for I := 0 to data.Size - 1 do
+            (reg.map[id])[i] := data[i];
+          Result := SZup;
+        end;
+
+      finally
+        MonitorExit(reg1.map);
+      end;
+    end;
 
 end;
+
 
 { TSZXXCmd }
 
-constructor TSZXXCmd.Create;
-begin
-
-end;
 
 destructor TSZXXCmd.Destroy;
 begin
@@ -120,17 +185,42 @@ begin
   inherited;
 end;
 
-procedure TSZXXCmd.run_command(regs: TList<Iwrite>);
+function TSZXXCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+var
+  reg: Iwrite;
+  id: string;
+  I: Integer;
 begin
+  id := data[0];
+  Result := SZNoData;
+  for reg in regs do
+  begin
+    if (reg.w_type = SJSXXN) then
+    begin
+      MonitorEnter(reg.map);
+      try
+        if (reg.map.ContainsKey(id)) then
+        begin
+          for I := 0 to data.Size - 1 do
+            (reg.map[id])[i] := data[i];
+        end
+        else
+        begin
+          reg.map.AddOrSetValue(id, data);
+        end;
+        Result := SZup;
+
+      finally
+        MonitorExit(reg.map);
+      end;
+    end;
+  end;
 
 end;
+
 
 { TShowCmd }
 
-constructor TShowCmd.Create;
-begin
-
-end;
 
 destructor TShowCmd.Destroy;
 begin
@@ -138,9 +228,23 @@ begin
   inherited;
 end;
 
-procedure TShowCmd.run_command(regs: TList<Iwrite>);
+function TShowCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
 begin
 
+end;
+
+{ TCmd }
+
+constructor TCmd.Create(da: TArrayEx<Variant>);
+begin
+  inherited Create;
+  data:=da;
+end;
+
+destructor TCmd.Destroy;
+begin
+
+  inherited;
 end;
 
 end.
