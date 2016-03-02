@@ -2,7 +2,7 @@ unit mystock.commands;
 
 interface
 uses
-  mystock.types,mystock.interfaces,system.Classes, Generics.Collections, ArrayEx, System.SysUtils, System.Variants, System.Classes,system.Math;
+  mystock.types,mystock.interfaces,system.Classes, Generics.Collections, ArrayEx, System.SysUtils, System.Variants,system.Math;
 type
 
 { TSZCmd }
