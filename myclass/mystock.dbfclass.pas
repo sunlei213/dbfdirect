@@ -42,14 +42,12 @@ type
       dbfEncoding:TEncoding;
       fDBhead:DBHead;
       frecstarPos:Integer;
-      fISread:Boolean;
       procedure writeHeader(recCount:integer);
       procedure writeFieldHeader(field:IDBField;loc:integer);
       procedure ReadHeader;
       procedure ReadFieldHeader;
     public
       constructor Create(DBfields:Tlist<IDBfield>);
-      constructor CreateRD;
       destructor Destroy;override;
       procedure initHead2Stream(recCount:integer);
       procedure addRecord(delflag:boolean;objs:tarrayex<variant>);
@@ -442,28 +440,15 @@ end;
 
 constructor TDBFWrite.Create(DBfields: Tlist<IDBfield>);
 begin
-  fISread:=False;
   self.fields:=DBfields;
   self.dbfEncoding:=TEncoding.Default;
   self.WriteBuffStream:=tmemorystream.Create;
 end;
 
-constructor TDBFWrite.CreateRD;
-begin
-  fISread:=True;
-  self.fields:=TList<IDBField>.Create;
-  self.dbfEncoding:=TEncoding.Default;
-  self.WriteBuffStream:=tmemorystream.Create;
-end;
 
 destructor TDBFWrite.Destroy;
 begin
   Self.WriteBuffStream.Free;
-  if fISread then
-  begin
-  Self.fields.Clear;
-  Self.fields.Free;
-  end;
   inherited;
 end;
 
