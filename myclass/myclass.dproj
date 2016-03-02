@@ -95,6 +95,8 @@
         <DCCReference Include="mystock.types.pas"/>
         <DCCReference Include="mystock.classes.pas"/>
         <DCCReference Include="mystock.commands.pas"/>
+        <DCCReference Include="mystock.writer.pas"/>
+        <DCCReference Include="mystock.singleinf.locker.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -132,7 +134,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\17.0\Bpl\myclass.bpl" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="..\..\..\..\..\..\Public\Documents\Embarcadero\Studio\17.0\Bpl\myclass.bpl" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>myclass.bpl</RemoteName>
                         <Overwrite>true</Overwrite>

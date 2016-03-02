@@ -40,6 +40,8 @@ contains
   mystock.singleinf.logger in 'mystock.singleinf.logger.pas',
   mystock.types in 'mystock.types.pas',
   mystock.classes in 'mystock.classes.pas',
-  mystock.commands in 'mystock.commands.pas';
+  mystock.commands in 'mystock.commands.pas',
+  mystock.writer in 'mystock.writer.pas',
+  mystock.singleinf.locker in 'mystock.singleinf.locker.pas';
 
 end.
