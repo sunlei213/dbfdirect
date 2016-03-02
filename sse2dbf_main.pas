@@ -650,9 +650,11 @@ var
   write1: TDBFWrite;
   obj1: TArrayEx<Variant>;
   delflag, ob11: Boolean;
+  fields:TList<IDBField>;
 begin
   stl := TList<string>.Create(Self.datamap.Keys);
-  write1 := TDBFWrite.Create(initHead);
+  fields:=initHead;
+  write1 := TDBFWrite.Create(fields);
   write1.initHead2Stream(Self.datamap.Count);
   try
     begin
@@ -688,6 +690,9 @@ begin
     Self.IOPVMap.Clear;
     stl.Free;
     write1.Free;
+    fields.Clear;
+    fields.Free;
+
   end;
 end;
 
