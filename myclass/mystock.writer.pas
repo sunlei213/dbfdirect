@@ -42,6 +42,26 @@ type
     destructor Destroy; override;
   end;
 
+  TSJSZS_wr=class(TMy_Writer)
+  protected
+    procedure initfield;override;
+
+  public
+    constructor Create;
+    procedure init_data;override;
+    destructor Destroy; override;
+  end;
+
+  TSJSXXN_wr=class(TMy_Writer)
+  protected
+    procedure initfield;override;
+
+  public
+    constructor Create;
+    procedure init_data;override;
+    destructor Destroy; override;
+  end;
+
 implementation
 uses
   mystock.singleinf.logger;
@@ -214,6 +234,165 @@ var
   readtrue: Boolean;
 begin
   fFilename := fpath + '\sjshq.dbf';
+  if FileExists(ffileName) then
+  begin
+      //¶ÁÈ¡hq×Ö¶Î
+    dbfread := TDBFWrite.Create(ffields);
+    try
+      readtrue := dbfread.ReadFile2Stream(fFilename);
+    except
+      on E: Exception do
+      begin
+        initfield;
+        Exit;
+      end;
+    end;
+    if readtrue then
+      dbfread.initStream2Head
+    else
+      initfield;
+  end
+  else
+  begin
+    initfield;
+  end;
+end;
+
+{ TSJSZS_wr }
+
+constructor TSJSZS_wr.Create;
+begin
+  inherited;
+  ftype:=SJSZS;
+end;
+
+destructor TSJSZS_wr.Destroy;
+begin
+
+  inherited;
+end;
+
+procedure TSJSZS_wr.initfield;
+begin
+  ffields.Add(TDBField.Create('ZSZSDM', 'C', 6, 0));
+  ffields.Add(TDBField.Create('ZSZSQC', 'C', 12, 0));
+  ffields.Add(TDBField.Create('ZSYWMC', 'C', 20, 0));
+  ffields.Add(TDBField.Create('ZSSSZS', 'N', 11, 4));
+  ffields.Add(TDBField.Create('ZSKSZS', 'N', 11, 4));
+  ffields.Add(TDBField.Create('ZSZGZS', 'N', 11, 4));
+  ffields.Add(TDBField.Create('ZSZDZS', 'N', 11, 4));
+  ffields.Add(TDBField.Create('ZSZJZS', 'N', 11, 4));
+  ffields.Add(TDBField.Create('ZSCJSL', 'N', 12, 0));
+  ffields.Add(TDBField.Create('ZSCJJE', 'N', 17, 3));
+end;
+
+procedure TSJSZS_wr.init_data;
+var
+  dbfread: IDBFRead;
+  readtrue: Boolean;
+begin
+  fFilename := fpath + '\sjszs.dbf';
+  if FileExists(ffileName) then
+  begin
+      //¶ÁÈ¡hq×Ö¶Î
+    dbfread := TDBFWrite.Create(ffields);
+    try
+      readtrue := dbfread.ReadFile2Stream(fFilename);
+    except
+      on E: Exception do
+      begin
+        initfield;
+        Exit;
+      end;
+    end;
+    if readtrue then
+      dbfread.initStream2Head
+    else
+      initfield;
+  end
+  else
+  begin
+    initfield;
+  end;
+end;
+
+{ TSJSXXN_wr }
+
+constructor TSJSXXN_wr.Create;
+begin
+  inherited;
+  ftype:=SJSXXN;
+end;
+
+destructor TSJSXXN_wr.Destroy;
+begin
+
+  inherited;
+end;
+
+procedure TSJSXXN_wr.initfield;
+begin
+  ffields.Add(TDBField.Create('XXZQDM','C',6,0));
+  ffields.Add(TDBField.Create('XXZQJC','C',8,0));
+  ffields.Add(TDBField.Create('XXJCQZ','C',4,0));
+  ffields.Add(TDBField.Create('XXYWJC','C',20,0));
+  ffields.Add(TDBField.Create('XXJCZQ','C',6,0));
+  ffields.Add(TDBField.Create('XXISIN','C',12,0));
+  ffields.Add(TDBField.Create('XXHYZL','C',3,0));
+  ffields.Add(TDBField.Create('XXHBZL','C',2,0));
+  ffields.Add(TDBField.Create('XXMGMZ','N',7,2));
+  ffields.Add(TDBField.Create('XXZFXL','N',12,0));
+  ffields.Add(TDBField.Create('XXLTGS','N',12,0));
+  ffields.Add(TDBField.Create('XXSNLR','N',9,4));
+  ffields.Add(TDBField.Create('XXBNLR','N',9,4));
+  ffields.Add(TDBField.Create('XXLJJZ','N',9,4));
+  ffields.Add(TDBField.Create('XXJSFL','N',7,6));
+  ffields.Add(TDBField.Create('XXYHSL','N',7,6));
+  ffields.Add(TDBField.Create('XXGHFL','N',7,6));
+  ffields.Add(TDBField.Create('XXSSRQ','D',8,0));
+  ffields.Add(TDBField.Create('XXQXRQ','D',8,0));
+  ffields.Add(TDBField.Create('XXDJRQ','D',8,0));
+  ffields.Add(TDBField.Create('XXJYDW','N',4,0));
+  ffields.Add(TDBField.Create('XXBLDW','N',6,0));
+  ffields.Add(TDBField.Create('XXSLDW','N',6,0));
+  ffields.Add(TDBField.Create('XXMBXL','N',9,0));
+  ffields.Add(TDBField.Create('XXJGDW','N',5,3));
+  ffields.Add(TDBField.Create('XXJHCS','N',7,3));
+  ffields.Add(TDBField.Create('XXLXCS','N',7,3));
+  ffields.Add(TDBField.Create('XXXJXZ','N',1,0));
+  ffields.Add(TDBField.Create('XXZTJG','N',9,3));
+  ffields.Add(TDBField.Create('XXDTJG','N',9,3));
+  ffields.Add(TDBField.Create('XXJGSX','N',9,3));
+  ffields.Add(TDBField.Create('XXJGXX','N',9,3));
+  ffields.Add(TDBField.Create('XXZHBL','N',5,2));
+  ffields.Add(TDBField.Create('XXDBZSL','N',5,2));
+  ffields.Add(TDBField.Create('XXRZBD','C',1,0));
+  ffields.Add(TDBField.Create('XXRQBD','C',1,0));
+  ffields.Add(TDBField.Create('XXCFBZ','C',1,0));
+  ffields.Add(TDBField.Create('XXZSBZ','C',1,0));
+  ffields.Add(TDBField.Create('XXSCDM','C',2,0));
+  ffields.Add(TDBField.Create('XXZQLB','C',4,0));
+  ffields.Add(TDBField.Create('XXZQJB','C',1,0));
+  ffields.Add(TDBField.Create('XXZQZT','C',1,0));
+  ffields.Add(TDBField.Create('XXJYLX','C',1,0));
+  ffields.Add(TDBField.Create('XXJYJD','C',1,0));
+  ffields.Add(TDBField.Create('XXTPBZ','C',1,0));
+  ffields.Add(TDBField.Create('XXRZZT','C',1,0));
+  ffields.Add(TDBField.Create('XXRQZT','C',1,0));
+  ffields.Add(TDBField.Create('XXRQJX','C',1,0));
+  ffields.Add(TDBField.Create('XXWLTP','C',1,0));
+  ffields.Add(TDBField.Create('XXYWZT','C',8,0));
+  ffields.Add(TDBField.Create('XXGXSJ','C',6,0));
+  ffields.Add(TDBField.Create('XXMARK','C',12,0));
+  ffields.Add(TDBField.Create('XXBYBZ','C',1,0));
+end;
+
+procedure TSJSXXN_wr.init_data;
+var
+  dbfread: IDBFRead;
+  readtrue: Boolean;
+begin
+  fFilename := fpath + '\sjsxxn.dbf';
   if FileExists(ffileName) then
   begin
       //¶ÁÈ¡hq×Ö¶Î
