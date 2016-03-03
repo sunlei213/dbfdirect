@@ -171,9 +171,12 @@ var
   lowdec1, i, j: integer;
   st1, st2: ansistring;
   ob: string;
+  ub,Hi,lo:UInt64;
   bo: boolean;
   re: Extended;
+  bit:array [0..6] of Integer;
 begin
+  bit:=[1,10,100,1000,10000,100000,1000000];
   if (self.fField_type = 'N') or (self.fField_type = 'F') then
   begin
     if (vartype(obj) = varString) or (vartype(obj) = varUString) then
@@ -185,6 +188,22 @@ begin
       if (re >= 10000.0) and (self.fdec > 0) then
         lowdec1 := lowdec1 - 1;
       st1 := ansistring(FloatToStrF(re, ffFixed, i, lowdec1));
+      i := self.Length - system.Length(st1);
+      if i < 0 then
+        raise Exception.Create('Value ' + string(st1) + ' cannot fit in pattern');
+      system.SetLength(st2, i);
+      for j := 1 to i do
+        st2[j] := ' ';
+      Result := string(st2 + st1);
+      exit;
+    end;
+    if (vartype(obj) = varUInt64) then
+    begin
+      ub:=obj;
+      lowdec1 := bit[self.fdec];
+      hi:=ub div lowdec1;
+      lo:=ub mod lowdec1;
+      st1 := ansistring(IntToStr(hi)+'.'+inttostr(lo));
       i := self.Length - system.Length(st1);
       if i < 0 then
         raise Exception.Create('Value ' + string(st1) + ' cannot fit in pattern');
