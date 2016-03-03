@@ -6,10 +6,15 @@ uses
   mystock.types,IdGlobal, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient;
 
 type
+  Ivisiter=interface
+    procedure update(ls:TDictionary<Integer,Integer>);
+  end;
+
   Ilocker=interface
     procedure Lock;
     procedure UnLock;
   end;
+
   Iwrite=interface
     procedure update;
     function getmap:TDictionary<string,tarrayex<variant>>;
@@ -27,6 +32,7 @@ type
     function stop:Boolean;
     function getstatus:rec_stat;
     function make_command:Idata_CMD;
+    procedure vi_reg(vi:ivisiter);
   end;
 
   Idata_make=interface
@@ -77,9 +83,7 @@ type
     procedure SetEncode(encode:TEncoding);
   end;
 
-  Ivisiter=interface
-    procedure update(ls:TStringList);
-  end;
+
 
   Ttask = class(TInterfacedObject, Idata_task)
   protected
