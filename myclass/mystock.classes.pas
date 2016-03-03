@@ -16,7 +16,7 @@ type
     fip:string;
     fport:Integer;
     fheart:UInt32;
-    ftype_coun:tstringlist;
+    ftype_coun:TDictionary<Integer,Integer>;
     fvisiters:tlist<Ivisiter>;
     fuser,fpasswd:string;
     fstatus:rec_stat;
@@ -51,7 +51,7 @@ type
     fType:Integer;
     fdataIStrue:Boolean;
     ffilename:string;
-    ftype_coun:tstringlist;
+    ftype_coun:TDictionary<Integer,Integer>;
     fvisiters:tlist<Ivisiter>;
     fstatus:rec_stat;
     function make_data:Idata_CMD;
@@ -393,7 +393,7 @@ begin
   islogin:=False;
   isnodata:=True;
   fdataIStrue:=False;
-  ftype_coun:=TStringList.Create;
+  ftype_coun:=TDictionary<Integer,Integer>.Create;
   fvisiters:=TList<Ivisiter>.Create;
 end;
 
@@ -415,6 +415,7 @@ function Trecive_net.make_command: Idata_CMD;
 var
   t_heat: TIdBytes;
   endtime:Integer;
+  tmp:Ivisiter;
 begin
   SetLength(t_heat, 12);
   FillBytes(t_heat, 12, 0);
@@ -447,6 +448,10 @@ begin
   begin
     cli_heart := TThread.GetTickCount;
     fAC.Socket.WriteDirect(t_heat);
+    for tmp in fvisiters do
+    begin
+      tmp.update(ftype_coun);
+    end;
   end;
   if (not fdataIStrue) then
     fstatus := DataErr
@@ -466,10 +471,17 @@ var
   l2_wt: wt_l2;
   data_make:Idata_make;
   tran32:uin32;
+  ty_coun,totle_coun:Integer;
 begin
   msg_type := fAC.Socket.ReadInt32();
   body_ln := fAC.Socket.ReadInt32();
   fdataIStrue := False;
+  if ftype_coun.ContainsKey(msg_type) then
+     ty_coun:=ftype_coun[msg_type]
+  else ty_coun:=0;
+  if ftype_coun.ContainsKey(999999) then
+     totle_coun:=ftype_coun[999999]
+  else totle_coun:=0;
   case msg_type of
     1: //登陆返回信息
       begin
@@ -480,16 +492,19 @@ begin
          MYform.mmo1.Lines.Add(Format('msg_type=%d,body_ln=%d,SenderCompID=%s,TargetCompID=%s,HeartBtInt=%d,Password=%s,DefaultApplVerID=%s',
                                       [msg_type,body_ln,trim(lg_body.SenderCompID),trim(lg_body.TargetCompID),NET2CPU(lg_body.HeartBtInt),trim(lg_body.Password),trim(lg_body.DefaultApplVerID)]));
          }
+        inc(ty_coun);
       end;
     3: //心跳
       begin
         chk := fac.Socket.ReadInt32();
         fdataIStrue:=(chk = 3);
         Result:=tnocmd.Create;
+        inc(ty_coun);
       end;
     300192: //逐笔委托行情
       begin
         fdataIStrue := readbuff<wt_l2>(l2_wt, msg_type, body_ln);
+        inc(ty_coun);
            {if fdataIStrue then
            MYform.mmo1.Lines.Add(Format('msg_type=%d,body_ln=%d,ChannelNo=%d,ApplSeqNum=%d,MDStreamID=%s,SecurityID=%s,SecurityIDSource=%s,Price=%.4n,OrderQty=%d,Side=%s,TransactTime=%d,OrdType=%s',
                                       [msg_type,body_ln,NET2CPU(l2_wt.ChannelNo),NET2CPU(l2_wt.ApplSeqNum),trim(l2_wt.MDStreamID),trim(l2_wt.SecurityID),trim(l2_wt.SecurityIDSource),(NET2CPU(l2_wt.Price)/10000.00),NET2CPU(l2_wt.OrderQty),l2_wt.Side,NET2CPU(l2_wt.TransactTime),l2_wt.OrdType]));
@@ -500,22 +515,26 @@ begin
       begin
         data_make:=Tstock_hq.Create(fAC);
         fdataIStrue:=data_make.getdate(body_ln);
+        inc(ty_coun);
       end;
     309011:  //指数行情
       begin
         data_make:=Tstock_zs.Create(fAC);
         fdataIStrue:=data_make.getdate(body_ln);
+        inc(ty_coun);
       end;
     309111: //成交量统计指标行情
       begin
         data_make:=Tstock_zsvol.Create(fAC);
         fdataIStrue:=data_make.getdate(body_ln);
         //fdataIStrue:=get_stock_hq(fAC, msg_type, body_ln);
+        inc(ty_coun);
       end;
     390013: //证券实时状态
       begin
         data_make:=TStockStatus.Create(fAC);
         fdataIStrue:=data_make.getdate(body_ln);
+        inc(ty_coun);
       end;
 
   else
@@ -530,7 +549,9 @@ begin
     fdataIStrue:=(tran32.i32=chk);
     Result:=tnocmd.Create;
   end;
-
+  Inc(totle_coun);
+  ftype_coun.AddOrSetValue(999999,totle_coun);
+  ftype_coun.AddOrSetValue(msg_type,ty_coun);
 end;
 
 function Trecive_net.readbuff<T>(var value: T; msgtype,
@@ -603,19 +624,28 @@ end;
 function Trecive_net.start: Boolean;
 begin
   if (not fAC.Connected) then
-    if (fip<>'') and (fport<>0) then
-      begin
-        fAC.Host:=fip;
-        fAC.Port:=fport;
-        try
-          fAC.Connect;
-        except
-          Exit(False);
-        end;
-        Result:=send_login;
+    if (fip <> '') and (fport <> 0) then
+    begin
+      fAC.Host := fip;
+      fAC.Port := fport;
+      try
+        fAC.Connect;
+      except
+        fstatus := ConnectErr;
+        Exit(False);
       end;
-  sev_heart:=TThread.GetTickCount;
-  cli_heart:=sev_heart;
+      Result := send_login;
+    end
+    else
+    begin
+      fstatus := NoSetIP;
+      Exit(False);
+    end
+  else
+    Result := True;
+  sev_heart := TThread.GetTickCount;
+  cli_heart := sev_heart;
+
 end;
 
 function Trecive_net.stop: Boolean;
@@ -649,22 +679,22 @@ end;
 
 function Trecive_file.make_command: Idata_CMD;
 begin
-
+  Result:=make_data;
 end;
 
 function Trecive_file.make_data: Idata_CMD;
 begin
-
+  Result:=tnocmd.Create;
 end;
 
 function Trecive_file.start: Boolean;
 begin
-
+  Result:=True;
 end;
 
 function Trecive_file.stop: Boolean;
 begin
-
+  Result:=True;
 end;
 
 procedure Trecive_file.vi_reg(vi: ivisiter);
