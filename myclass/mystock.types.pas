@@ -5,7 +5,7 @@ interface
 type
   Enum_CMD = (SZNoData,SHup,SZup);
   Dbf_Type = (SJSHQ,SJSZS,SJSXXN,SHOW);
-  rec_stat = (DataErr,NoData,HasData,FileEnd);
+  rec_stat = (DataErr,NoData,HasData,FileEnd,NoServer,ConnectErr,NoSetIP);
 
   DBHead = record
     dbtype: byte;
