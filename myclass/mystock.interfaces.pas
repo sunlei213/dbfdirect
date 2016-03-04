@@ -56,6 +56,7 @@ type
 	  function GetLength:Byte;
 	  function GetDeci:Byte;
 	  function format(obj:variant):string;
+    function unformatValue(st:string):Variant;
 	  function parse(s:string):variant;
 	  procedure SetName(na:AnsiString);
 	  procedure SetType(ty:ansichar);
@@ -69,8 +70,8 @@ type
   end;
 
   IDBFRead=interface
-    procedure initStream2Head;
-    function readRecord:tarrayex<variant>;
+    function initStream2Head:Integer;
+    function readRecord(recnum:Integer):tarrayex<variant>;
     function ReadFile2Stream(filename:string):Boolean;
     procedure SetEncoder(encode:TEncoding);
   end;
