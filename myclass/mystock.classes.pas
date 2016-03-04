@@ -150,7 +150,6 @@ begin
   data_size := SizeOf(stock_data);
   hq_size := SizeOf(MDEntry);
 end;
-
 function Tstock_hq.getdate(body_ln: UInt32): Boolean;
 var
   trans1: uin32;
@@ -159,7 +158,8 @@ var
   I: Integer;
   m: Integer;
   k: Integer;
-  hq_md:MDEntry;
+  hq_md: MDEntry;
+  sl: Char;
 begin
   trans1.i32 := body_ln;
   chk := chk + trans1.by32[3] + trans1.by32[2] + trans1.by32[1] + trans1.by32[0];
@@ -197,12 +197,82 @@ begin
         for k := 7 downto 0 do
           chk := chk + trans64.by64[k];
       end;
-    mden_body[i]:=hq_md;
+    mden_body[i] := hq_md;
   end;
   l := AClient.Socket.ReadInt32;
   chk := chk mod 256;
-  Result := (l = chk);
+  if (l = chk) then
+  begin
+    data_stream.SetLen(35);
+    for I := 2 to 34 do
+      data_stream[i] := uint64(0);
+    data_stream[0] := string(stock_body.SecurityID).Trim;
+    data_stream[2] := stock_body.PrevClosePx div 10;
+    data_stream[5] := stock_body.TotalVolumeTrade div 100;
+    data_stream[6] := stock_body.TotalValueTrade div 10;
+    data_stream[7] := stock_body.NumTrades;
+    for hq_md in mden_body do
+    begin
+      sl:= Char(hq_md.MDEntryType[0]);
+      case (sl) of
+        '0':
+          if (hq_md.MDEntryType[1] = ' ') then
+          begin
+            data_stream[24 + hq_md.MDPriceLevel] := hq_md.MDEntryPx div 1000;
+            data_stream[25 + hq_md.MDPriceLevel] := hq_md.MDEntrySize div 100;
+          end;
+        '1':
+          if (hq_md.MDEntryType[1] = ' ') then
+          begin
+            data_stream[24 - hq_md.MDPriceLevel] := hq_md.MDEntryPx div 1000;
+            data_stream[25 - hq_md.MDPriceLevel] := hq_md.MDEntrySize div 100;
+          end
+          else
+            data_stream[12]:= hq_md.MDEntryPx div 1000;
+        '2':
+          if (hq_md.MDEntryType[1] = ' ') then
+          begin
+            data_stream[4] := hq_md.MDEntryPx div 1000;
+          end
+          else
+            data_stream[13]:= hq_md.MDEntryPx div 1000;
+        '4':
+          if (hq_md.MDEntryType[1] = ' ') then
+          begin
+            data_stream[3] := hq_md.MDEntryPx div 1000;
+          end;
+        '5':
+          if (hq_md.MDEntryType[1] = 'x') then
+          begin
+            data_stream[10] := hq_md.MDEntryPx div 10000;
+          end;
+        '6':
+          if (hq_md.MDEntryType[1] = 'x') then
+          begin
+            data_stream[11] := hq_md.MDEntryPx div 10000;
+          end;
+        '7':
+          if (hq_md.MDEntryType[1] = ' ') then
+          begin
+            data_stream[8] := hq_md.MDEntryPx div 1000;
+          end;
+        '8':
+          if (hq_md.MDEntryType[1] = ' ') then
+          begin
+            data_stream[9] := hq_md.MDEntryPx div 1000;
+          end;
+        'g':
+          if (hq_md.MDEntryType[1] = 'x') then
+          begin
+            data_stream[13] := hq_md.MDEntrySize div 100;
+          end;
+      end;
+    end;
+  end;
 end;
+
+
+
 
 
 
@@ -442,9 +512,9 @@ begin
     fdataIStrue:=True;
   end;
   endtime := TThread.GetTickCount;
-  if isnodata and ((endtime - sev_heart) > heart * 2) then
+  if isnodata and ((endtime - sev_heart) > (heart * 2)) then
     fdataIStrue := False;
-  if (endtime - cli_heart) > heart then
+  if ((endtime - cli_heart) > heart) then
   begin
     cli_heart := TThread.GetTickCount;
     fAC.Socket.WriteDirect(t_heat);

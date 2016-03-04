@@ -174,9 +174,11 @@ var
   ub,Hi,lo:UInt64;
   bo: boolean;
   re: Extended;
-  bit:array [0..6] of Integer;
+  bit1:array [0..6] of Integer;
 begin
-  bit:=[1,10,100,1000,10000,100000,1000000];
+  bit1[0]:=1;
+  for I := (low(bit1)+1) to High(bit1) do
+    bit1[i]:=bit1[i-1]*10;
   if (self.fField_type = 'N') or (self.fField_type = 'F') then
   begin
     if (vartype(obj) = varString) or (vartype(obj) = varUString) then
@@ -200,11 +202,11 @@ begin
     if (vartype(obj) = varUInt64) then
     begin
       ub:=obj;
-      lowdec1 := bit[self.fdec];
-      hi:=ub div lowdec1;
-      lo:=ub mod lowdec1;
+      lowdec1 := bit1[self.fdec];
+      hi:=ub div uint64(lowdec1);
+      lo:=ub mod uint64(lowdec1);
       st1 := ansistring(IntToStr(hi)+'.'+inttostr(lo));
-      i := self.Length - system.Length(st1);
+      i := Integer(self.Length) - system.Length(st1);
       if i < 0 then
         raise Exception.Create('Value ' + string(st1) + ' cannot fit in pattern');
       system.SetLength(st2, i);
