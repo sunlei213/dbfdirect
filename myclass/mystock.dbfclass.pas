@@ -23,6 +23,7 @@ type
     function GetLength: Byte;
     function GetDeci: Byte;
     function format(obj: variant): string;
+    function unformatValue(st:string):Variant;
     function parse(s: string): variant;
     procedure SetName(na: AnsiString);
     procedure SetType(ty: ansichar);
@@ -54,8 +55,8 @@ type
       procedure addRecord0(delflag:boolean;objs:tarrayex<variant>);
       procedure wirteStream2File(filename:string);
       procedure SetEncode(encode:TEncoding);
-      procedure initStream2Head;
-      function readRecord:tarrayex<variant>;
+      function initStream2Head:Integer;
+      function readRecord(recnum:Integer):tarrayex<variant>;
       function ReadFile2Stream(filename:string):Boolean;
       procedure SetEncoder(encode:TEncoding);
   end;
@@ -144,7 +145,7 @@ begin
   if (deci < 0) then
     raise Exception.Create('The field decimal count should not be a negative integer. Got: ' + inttostr(deci));
 
-  if ((ty <> 'C') or (ty <> 'L') or (ty <> 'D')) and (deci <> 0) then
+  if ((ty = 'C') or (ty = 'L') or (ty = 'D')) and (deci <> 0) then
     raise Exception.Create('The field decimal count should be 0 for character, logical, and date fields. Got: ' + inttostr(deci));
 
   if (deci > (le - 1)) then
@@ -170,11 +171,13 @@ function TDBField.formatValue(obj: Variant): string;
 var
   lowdec1, i, j: integer;
   st1, st2: ansistring;
-  ob: string;
-  ub,Hi,lo:UInt64;
+  ob,sttmp: string;
+  ub,Hi,lo:Int64;
+  uub,uHi,uLo:UInt64;
   bo: boolean;
   re: Extended;
   bit1:array [0..6] of Integer;
+  stb:TstringBuilder;
 begin
   bit1[0]:=1;
   for I := (low(bit1)+1) to High(bit1) do
@@ -199,13 +202,65 @@ begin
       Result := string(st2 + st1);
       exit;
     end;
+    if (vartype(obj) = varInt64) then
+    begin
+      bo:=False;
+      ub:=obj;
+      if ub<0 then
+      begin
+        bo:=True;
+        ub:=0-ub;
+      end;
+      lowdec1 := bit1[self.fdec];
+      hi:=ub div Int64(lowdec1);
+      lo:=ub mod Int64(lowdec1);
+      if(fdec>0)then
+        begin
+        sttmp:=inttostr(lo);
+        i:=Integer(fdec)-sttmp.Length;
+        if i>0 then
+         begin
+           stb:=TstringBuilder.Create;
+           stb.Append('0',i);
+           sttmp:=stb.ToString+sttmp;
+           stb.Free;
+         end;
+        st1 := ansistring(IntToStr(hi)+'.'+sttmp);
+        end
+      else
+        st1:= ansistring(IntToStr(hi));
+      if bo then
+        st1:=AnsiString('-'+string(st1).Trim);
+      i := Integer(self.Length) - system.Length(st1);
+      if i < 0 then
+        raise Exception.Create('Value ' + string(st1) + ' cannot fit in pattern');
+      system.SetLength(st2, i);
+      for j := 1 to i do
+        st2[j] := ' ';
+      Result := string(st2 + st1);
+      exit;
+    end;
     if (vartype(obj) = varUInt64) then
     begin
-      ub:=obj;
+      uub:=obj;
       lowdec1 := bit1[self.fdec];
-      hi:=ub div uint64(lowdec1);
-      lo:=ub mod uint64(lowdec1);
-      st1 := ansistring(IntToStr(hi)+'.'+inttostr(lo));
+      uhi:=uub div uInt64(lowdec1);
+      ulo:=uub mod uInt64(lowdec1);
+      if(fdec>0)then
+        begin
+        sttmp:=inttostr(ulo);
+        i:=Integer(fdec)-sttmp.Length;
+        if i>0 then
+         begin
+           stb:=TstringBuilder.Create;
+           stb.Append('0',i);
+           sttmp:=stb.ToString+sttmp;
+           stb.Free;
+         end;
+        st1 := ansistring(IntToStr(uhi)+'.'+sttmp);
+        end
+      else
+        st1:= ansistring(IntToStr(uhi));
       i := Integer(self.Length) - system.Length(st1);
       if i < 0 then
         raise Exception.Create('Value ' + string(st1) + ' cannot fit in pattern');
@@ -235,7 +290,7 @@ begin
       system.SetLength(st2, self.getLength - system.Length(st1));
       for I := 1 to self.getLength - system.Length(st1) do
         st2[i] := ' ';
-      Result := string(st2 + st1);
+      Result := string(st1 + st2);
       exit;
     end;
     raise Exception.Create('Expected a String, got ' + inttostr(VarType(obj)) + ', value: ' + vartostr(obj));
@@ -381,6 +436,82 @@ procedure TDBField.SetType(ty: ansichar);
 begin
   self.fField_type := ty;
 end;
+
+function TDBField.unformatValue(st: string): Variant;
+var
+  lowdec1, i: integer;
+  starr:TArray<string>;
+  ob: string;
+  ub,Hi,lo:Int64;
+  re: TDateTime;
+  isFu:Boolean;
+  bit1:array [0..6] of Integer;
+begin
+  bit1[0] := 1;
+  for I := (low(bit1) + 1) to High(bit1) do
+    bit1[i] := bit1[i - 1] * 10;
+  ob := st.Trim;
+  isFu := false;
+  if (self.fField_type = 'N') or (self.fField_type = 'F') then
+  begin
+    if (ob.Length > 0) then
+    begin
+      if ob.IndexOf('-') >= 0 then
+      begin
+        ob:=ob.Replace('-', '0',[rfReplaceAll]);
+        isFu := True;
+      end;
+      starr := ob.Split(['.']);
+      lo := 0;
+      hi := 0;
+      lowdec1 := bit1[self.fdec];
+      if (System.Length(starr) > 1) then
+      begin
+        if starr[1].Length < Self.fdec then
+          for I := 1 to Self.fdec - starr[1].Length do
+            starr[1] := starr[1] + '0';
+        lo := starr[1].ToInt64;
+      end;
+      hi := starr[0].ToInt64;
+      ub := Hi * int64(lowdec1) + lo;
+      if isFu then
+        ub := 0 - ub;
+      Result := ub;
+      exit;
+    end;
+    raise Exception.Create('Field Type Eror for ' + st + '.');
+  end;
+  if (self.fField_type = 'C') then
+  begin
+    Result:=ob;
+    Exit;
+  end;
+  if (self.fField_type = 'L') then
+  begin
+    if ob='Y' then
+    begin
+      Result := True;
+      exit;
+    end;
+    if ob='N' then
+    begin
+      Result := False;
+      exit;
+    end;
+    raise Exception.Create('Expected a Boolean, got ' + ob );
+  end;
+  if (self.fField_type = 'D') then
+  begin
+    if TryStrToDate(ob,re) then
+    begin
+      Result := re;
+      Exit;
+    end;
+    raise Exception.Create('Expected a Date, got ' + st );
+  end;
+  raise Exception.Create('Unrecognized JDBFField type: '+ st);
+end;
+
 //==============================================================================
 // DBFWrite й╣ож
 //==============================================================================
@@ -494,11 +625,14 @@ begin
   end;
 end;
 
-procedure TDBFWrite.initStream2Head;
+function TDBFWrite.initStream2Head:Integer;
 begin
+  Result:=0;
   try
     ReadHeader;
     ReadFieldHeader;
+    frecstarPos:= fDBhead.DBHeadLen;
+    Result:=fDBhead.dbrecoun;
   except
     on E: Exception do
       raise E;
@@ -557,7 +691,7 @@ begin
   self.WriteBuffStream.ReadBuffer(fDBhead,sizeof(DBhead));
 end;
 
-function TDBFWrite.readRecord: tarrayex<variant>;
+function TDBFWrite.readRecord(recnum:Integer): tarrayex<variant>;
 var
   j, k: integer;
   byte0, byte1: tbytes;
@@ -565,9 +699,7 @@ var
   st: string;
   objs: TArrayex<Variant>;
 begin
-  if WriteBuffStream.Position < frecstarPos then
-    WriteBuffStream.Position := frecstarPos;
-  WriteBuffStream.Position := WriteBuffStream.Position - ((WriteBuffStream.Position - frecstarPos) mod fDBhead.DBRecLen);
+  WriteBuffStream.Position := frecstarPos+fDBhead.DBRecLen*recnum;
   self.WriteBuffStream.ReadData(ch);
   SetLength(byte0, self.fDBhead.DBRecLen - 1);
   self.WriteBuffStream.ReadBuffer(byte0, length(byte0));
@@ -579,7 +711,7 @@ begin
     SetLength(byte1, self.fields[j].length);
     move(byte0[k], byte1[0], self.fields[j].length);
     st := Self.dbfEncoding.GetString(byte1);
-    objs[j] := st;
+    objs[j] := Self.fields[j].unformatValue(st);
     k := k + self.fields[j].length;
   end;
   Result := objs;
