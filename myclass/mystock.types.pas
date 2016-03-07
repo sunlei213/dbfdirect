@@ -194,7 +194,9 @@ type
   public
     class function IfThen<T>(AValue: Boolean; const ATrue, AFalse: T): T; inline;
   end;
-
+  TBoolHelper = record helper for Boolean
+    function IIf<T>(const ATrue, AFalse: T): T; inline;
+  end;
 
 function strtospace(sl: string; Leng: Integer; var outchar: array of AnsiChar): Boolean;
 
@@ -215,6 +217,7 @@ begin
   else
     Result := AFalse;
 end;
+
 
 
 function strtospace(sl: string; Leng: Integer; var outchar: array of AnsiChar): Boolean;
@@ -276,6 +279,16 @@ begin
 {$ELSE}
   {$Message Fatal 'Unsupported architecture'}
 {$ENDIF}
+end;
+
+{ TBoolHelper }
+
+function TBoolHelper.IIf<T>(const ATrue, AFalse: T): T;
+begin
+  if self then
+    Result := ATrue
+  else
+    Result := AFalse;
 end;
 
 end.
