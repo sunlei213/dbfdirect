@@ -71,6 +71,30 @@ type
     function run_command(regs:TList<Iwrite>):Enum_CMD;
   end;
 
+{ TfastwCmd }
+
+  TfastCmd = class(TCmd)
+  private
+
+  protected
+
+  public
+    destructor Destroy; override;
+    function run_command(regs:TList<Iwrite>):Enum_CMD;
+  end;
+
+  { TfjywCmd }
+
+  TfjyCmd = class(TCmd)
+  private
+
+  protected
+
+  public
+    destructor Destroy; override;
+    function run_command(regs:TList<Iwrite>):Enum_CMD;
+  end;
+
 implementation
 
 
@@ -245,6 +269,32 @@ destructor TCmd.Destroy;
 begin
 
   inherited;
+end;
+
+{ TfastCmd }
+
+destructor TfastCmd.Destroy;
+begin
+
+  inherited;
+end;
+
+function TfastCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+begin
+
+end;
+
+{ TfjyCmd }
+
+destructor TfjyCmd.Destroy;
+begin
+
+  inherited;
+end;
+
+function TfjyCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+begin
+
 end;
 
 end.
