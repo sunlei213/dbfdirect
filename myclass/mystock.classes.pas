@@ -2,8 +2,8 @@ unit mystock.classes;
 interface
 
 uses
-  mystock.types, mystock.interfaces, IdGlobal, IdTCPClient, Generics.Collections,
-  ArrayEx, System.SysUtils, System.Variants, System.Classes, system.Math;
+   mystock.interfaces, IdGlobal, IdTCPClient, Generics.Collections,
+  ArrayEx, System.SysUtils, mystock.types,System.Variants, System.Classes, system.Math;
 
 type
   Trecive_net = class(TInterfacedObject, Idata_recive)
@@ -773,7 +773,7 @@ begin
       obj[4]:=s1;
       obj[5]:=sl1[7];
       obj[6]:=sl1[8];
-      obj[7]:=TExtFuns.IfThen(Self.isclose,sl1[10],sl1[9]);
+      obj[7]:=isclose.IIf(sl1[10],sl1[9]);
       obj[10]:= sl1[3];;
       obj[11]:=True;
     end
@@ -789,13 +789,13 @@ begin
       obj[4]:=s1;
       obj[5]:=sl1[7];
       obj[6]:=sl1[8];
-      obj[7]:=TExtFuns.IfThen(Self.isclose,sl1[10],sl1[9]);
+      obj[7]:=isclose.IIf(sl1[10],sl1[9]);
       obj[8]:=sl1[11];
       obj[9]:=sl1[13];
       obj[10]:= sl1[3];;
       if type1='MD004' then s1:=sl1[33]
       else s1:=sl1[31];
-      obj[11]:=TExtFuns.IfThen(((Copy(s1,0,1)<>'P') and (Copy(s1,2,1)='1')),False,True);
+      obj[11]:=((Copy(s1,0,1)<>'P') and (Copy(s1,2,1)='1')).IIf(False,True);
       obj[12]:=sl1[12];
       obj[13]:=sl1[15];
       obj[14]:=sl1[16];
