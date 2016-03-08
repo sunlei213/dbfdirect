@@ -47,14 +47,22 @@ type
   Trecive_file = class(TInterfacedObject, Idata_recive)
   private
           { private declarations }
-    fmem:TMemoryStream;
+    flines: TStringList;
     fType:Integer;
+    frecno:Integer;
     fdataIStrue:Boolean;
-    ffilename:string;
+    ffilenames:TStringList;
     ftype_coun:TDictionary<Integer,Integer>;
     fvisiters:tlist<Ivisiter>;
     fstatus:rec_stat;
+    T1IOPVMap,IOPVMap:TDictionary<string,string>;
+    isclose:Boolean;
+    jydate:string;
     function make_data:Idata_CMD;
+    function convertMktdtRecord2Map(rec:String):TArrayEx<Variant>;
+    function convertFJYRecord2Map(rec:string):TArrayEx<Variant>;
+    function setFirstRecVal(firstRec,szTradePrice,agTradePrice,bgTradePrice:string):tarrayex<variant>;
+    function firstRecValFormat(headVals:TArrayEx<string>):tarrayex<variant>;
   protected
           { protected declarations }
   public
@@ -66,7 +74,7 @@ type
     function stop: Boolean;
     function make_command: Idata_CMD;
     function getstatus:rec_stat;
-    property filename:string read ffilename write ffilename;
+    property filenames:TStringList read ffilenames write ffilenames;
     property dataIStrue:Boolean read fdataIStrue;
   end;
 
@@ -141,7 +149,7 @@ type
 
 implementation
 uses
-  mystock.commands;
+  mystock.commands,Data.FmtBcd;
 { Tstock_hq }
 
 constructor Tstock_hq.Create(AClient: TIdTCPClient);
@@ -731,20 +739,132 @@ end;
 
 { Trecive_file }
 
-constructor Trecive_file.Create;
+function Trecive_file.convertFJYRecord2Map(rec: string): TArrayEx<Variant>;
 begin
 
+end;
+
+function Trecive_file.convertMktdtRecord2Map(rec: String): TArrayEx<Variant>;
+var
+sl1:tarray<string>;
+obj:tarrayex<variant>;
+s1,type1,tmp:string;
+i:Integer;
+begin
+  tmp:=Trim(rec);
+  if tmp='' then Exit;
+  sl1:=tmp.split(['|']);
+  for I := 0 to Length(sl1)-1 do sl1[i]:=Trim(sl1[i]);
+  type1:=sl1[0];
+  if type1='TRAILER' then
+     begin
+       Exit;
+     end;
+  obj.SetLen(30);
+  if type1='MD001' then
+    begin
+      obj[0]:=sl1[1];
+      obj[1]:=sl1[2];
+      obj[2]:=sl1[5];
+      obj[3]:=sl1[6];
+      s1:=BcdToStr(BCDRoundTo(strtobcd(sl1[4]),0));
+      if Length(Trim(s1))>12 then
+      s1:='999999999999';
+      obj[4]:=s1;
+      obj[5]:=sl1[7];
+      obj[6]:=sl1[8];
+      obj[7]:=TExtFuns.IfThen(Self.isclose,sl1[10],sl1[9]);
+      obj[10]:= sl1[3];;
+      obj[11]:=True;
+    end
+  else
+    begin
+      obj[0]:=sl1[1];
+      obj[1]:=sl1[2];
+      obj[2]:=sl1[5];
+      obj[3]:=sl1[6];
+      s1:=BcdToStr(BCDRoundTo(strtobcd(sl1[4]),0));
+      if Length(Trim(s1))>12 then
+      s1:='999999999999';
+      obj[4]:=s1;
+      obj[5]:=sl1[7];
+      obj[6]:=sl1[8];
+      obj[7]:=TExtFuns.IfThen(Self.isclose,sl1[10],sl1[9]);
+      obj[8]:=sl1[11];
+      obj[9]:=sl1[13];
+      obj[10]:= sl1[3];;
+      if type1='MD004' then s1:=sl1[33]
+      else s1:=sl1[31];
+      obj[11]:=TExtFuns.IfThen(((Copy(s1,0,1)<>'P') and (Copy(s1,2,1)='1')),False,True);
+      obj[12]:=sl1[12];
+      obj[13]:=sl1[15];
+      obj[14]:=sl1[16];
+      obj[15]:=sl1[19];
+      obj[16]:=sl1[20];
+      obj[17]:=sl1[14];
+      obj[18]:=sl1[17];
+      obj[19]:=sl1[18];
+      obj[20]:=sl1[21];
+      obj[21]:=sl1[22];
+      obj[23]:=sl1[24];
+      obj[24]:=sl1[27];
+      obj[25]:=sl1[28];
+      obj[26]:=sl1[25];
+      obj[27]:=sl1[26];
+      obj[28]:=sl1[29];
+      obj[29]:=sl1[30];
+    end;
+  if type1='MD004' then
+  begin
+    Self.T1IOPVMap.AddOrSetValue(sl1[1],sl1[31]);
+    Self.IOPVMap.AddOrSetValue(sl1[1],sl1[32]);
+  end;
+  result:=obj;
+end;
+
+constructor Trecive_file.Create;
+begin
+  inherited;
+  flines:=TStringList.Create;
+  fdataIStrue:=False;
+  ftype_coun:=TDictionary<Integer,Integer>.Create;
+  Self.T1IOPVMap:=TDictionary<string,string>.Create;
+  Self.IOPVMap:=TDictionary<string,string>.Create;
+  fvisiters:=TList<Ivisiter>.Create;
+  fType:=0;
 end;
 
 destructor Trecive_file.Destroy;
 begin
-
+  fvisiters.Clear;
+  fvisiters.Free;
+  ftype_coun.Free;
+  flines.Free;
   inherited;
+end;
+
+function Trecive_file.firstRecValFormat(
+  headVals: TArrayEx<string>): tarrayex<variant>;
+var
+fr:TArrayEx<Variant>;
+begin
+   fr.SetLen(30);
+   fr[0]:=headVals[0];
+   fr[1]:=headVals[1];
+   fr[2]:=headVals[2];
+   fr[3]:=headVals[3];
+   fr[4]:=headVals[4];
+   fr[5]:=headVals[5];
+   fr[10]:=headVals[10];
+   fr[11]:=headVals[11];
+   fr[12]:=headVals[12];
+   fr[14]:=headVals[14];
+   Result:=fr;
 end;
 
 function Trecive_file.getstatus: rec_stat;
 begin
-
+  Result:=fstatus;
 end;
 
 function Trecive_file.make_command: Idata_CMD;
@@ -753,18 +873,109 @@ begin
 end;
 
 function Trecive_file.make_data: Idata_CMD;
+var
+  lin, szRecord, agRecord, enRecord: string;
+  i:Integer;
 begin
-  Result:=tnocmd.Create;
+  if frecno < flines.Count then
+  begin
+    case fType of
+      0:
+        begin
+          lin := flines[frecno];
+          if frecno = 0 then
+          begin
+            szRecord := flines[1];
+            agRecord := flines[2];
+            enRecord := flines[3];
+            result := tfastcmd.create(setfirstrecval(lin, (szrecord.split(['|']))[9], (szrecord.split(['|']))[9], (szrecord.split(['|']))[9]));
+          end
+          else
+           result:=tfastcmd.create(convertMktdtRecord2Map(lin));
+        end;
+      1:
+        result:=tfjycmd.create(convertFJYRecord2Map(lin));
+    end;
+  end
+  else
+  begin
+    i:=frecno-flines.count;
+    case i of
+      0: result:=tfjycmd.create(tarrayex<Variant>.Create(['888880', '新标准券', '1.0', '0.0', '0', '0.0', '0.0', '0.0', '0.0', '0.0', '0', True, '0', '0.0', '0', '0.0', '0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0']));
+      1:result:=tfjycmd.create(tarrayex<Variant>.Create(['799990', '市值股数', '1.0', '0.0', '0', '0.0', '0.0', '0.0', '0.0', '0.0', '0', True, '0', '0.0', '0', '0.0', '0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0']));
+    end;
+  end;
+  inc(frecno);
+end;
+
+function Trecive_file.setFirstRecVal(firstRec, szTradePrice, agTradePrice,
+  bgTradePrice: string): tarrayex<variant>;
+var
+obj:Tarrayex<string>;
+stl:tarray<string>;
+s1:string;
+begin
+   obj.SetLen(33);
+   stl:=firstRec.split(['|']);
+   obj[0]:='000000';
+   obj[1]:=StringReplace(Copy(stl[6],10,8),':','',[rfReplaceAll])+'  ';
+   obj[2]:=agTradePrice;
+   obj[3]:=bgTradePrice;
+   obj[4]:='0';
+   Self.jydate:=Copy(stl[6],1,8);
+   obj[5]:=Self.jydate;
+   s1:=stl[8];
+   if Copy(stl[8],1,1)='E' then
+     begin
+       obj[10]:='1111111111';
+       Self.isclose:=True;
+     end
+   else
+     begin
+       obj[10]:='0';
+       Self.isclose:=False;
+     end;
+   obj[11]:=szTradePrice;
+   obj[12]:=Copy(s1,3,1);
+   obj[14]:=Copy(s1,2,1);
+   Result:=firstRecValFormat(obj);
 end;
 
 function Trecive_file.start: Boolean;
+var
+id:string;
 begin
-  Result:=True;
+  Result:=False;
+  case fType of
+  0: id:='fast';
+  1: id:='fjy';
+  end;
+  if Assigned(ffilenames) then
+  begin
+    while Result do
+    begin
+      try
+        flines.LoadFromFile(ffilenames.Values[id]);
+        frecno:=0;
+        Result:=True;
+      except on e:Exception  do
+        Sleep(50);
+      end;
+    end;
+  end;
 end;
 
 function Trecive_file.stop: Boolean;
 begin
-  Result:=True;
+  Result := False;
+  if Assigned(ffilenames) then
+  begin
+    flines.Clear;
+    Inc(ftype);
+    if (fType >= ffilenames.Count) then
+      ftype := 0;
+    Result := True;
+  end;
 end;
 
 procedure Trecive_file.vi_reg(vi: ivisiter);
