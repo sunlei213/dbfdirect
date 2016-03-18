@@ -17,6 +17,7 @@ type
 
   Iwrite=interface
     procedure update;
+    procedure write;
     function getmap:TDictionary<string,tarrayex<variant>>;
     function gettype:Dbf_Type;
     property map:TDictionary<string,tarrayex<variant>> read getmap;
@@ -45,10 +46,6 @@ type
     function  write_dbf(filename:string):Boolean;
   end;
 
-  Idata_task=interface
-    procedure update;
-    function getmap:TDictionary<string,TArrayEx<Variant>>;
-  end;
 
   IDBField=interface
     function GetName:AnsiString;
@@ -86,15 +83,6 @@ type
 
 
 
-  Ttask = class(TInterfacedObject, Idata_task)
-  protected
-    fdbfpath:string;
-    ffreg:integer;
-    fmap:TDictionary<string,TArrayEx<Variant>>;
-  public
-    procedure update;virtual;abstract;
-    function getmap:TDictionary<string,TArrayEx<Variant>>;
-  end;
 
   Tstock = class(TInterfacedObject, Idata_make)
   private
@@ -134,13 +122,5 @@ begin
     Self.chk := Self.chk + self.tby[i];
 end;
 
-
-
-{ Ttask }
-
-function Ttask.getmap: TDictionary<string, TArrayEx<Variant>>;
-begin
-  Result:=fmap;
-end;
 
 end.
