@@ -15,6 +15,7 @@ type
     ffreg:Integer;
     fstart:Integer;
     ffields:TList<IDBField>;
+    fup_coun:Integer;
     function getfreg:Integer;
     procedure setfreg(sec:Integer);
     procedure writedbf;virtual;
@@ -22,9 +23,10 @@ type
   public
     constructor Create;
     procedure setpath(path:string);
-    procedure init_data;virtual;abstract;
+    function init_data(isread:Boolean):Boolean;virtual;abstract;
     destructor Destroy; override;
     procedure update;
+    procedure write;
     function getmap:TDictionary<string,tarrayex<variant>>;
     function gettype:Dbf_Type;
     property map:TDictionary<string,tarrayex<variant>> read getmap;
@@ -38,7 +40,8 @@ type
 
   public
     constructor Create;
-    procedure init_data;override;
+    function init_data(isread:Boolean):Boolean;override;
+    procedure setmap(mp:TDictionary<string,tarrayex<variant>>);
     destructor Destroy; override;
   end;
 
@@ -48,7 +51,7 @@ type
 
   public
     constructor Create;
-    procedure init_data;override;
+    function init_data(isread:Boolean):Boolean;override;
     destructor Destroy; override;
   end;
 
@@ -58,7 +61,7 @@ type
 
   public
     constructor Create;
-    procedure init_data;override;
+    function init_data(isread:Boolean):Boolean;override;
     destructor Destroy; override;
   end;
 
@@ -74,6 +77,7 @@ begin
   fmap:=TDictionary<string,tarrayex<variant>>.Create;
   ffreg:=0;
   fstart:=0;
+  fup_coun:=0;
   ffields:=TList<IDBField>.Create;
 end;
 
@@ -112,6 +116,11 @@ begin
 end;
 
 procedure TMy_Writer.update;
+begin
+  Inc(fup_coun);
+end;
+
+procedure TMy_Writer.write;
 var
   time_now:Integer;
 begin
@@ -121,10 +130,11 @@ begin
   end;
   time_now:=TThread.GetTickCount;
   time_now:=time_now-fstart;
-  if (time_now>ffreg) then
+  if (time_now>ffreg) and (fup_coun>0) then
   begin
     writedbf;
     fstart:=TThread.GetTickCount;
+    fup_coun:=0;
   end;
 end;
 
@@ -228,10 +238,14 @@ begin
 
 end;
 
-procedure TSJSHQ_wr.init_data;
+function TSJSHQ_wr.init_data(isread:Boolean):Boolean;
 var
   dbfread: IDBFRead;
   readtrue: Boolean;
+  recoun:Integer;
+  I: Integer;
+  item: TArrayEx<Variant>;
+  id: string;
 begin
   fFilename := fpath + '\sjshq.dbf';
   if FileExists(ffileName) then
@@ -244,19 +258,60 @@ begin
       on E: Exception do
       begin
         initfield;
-        Exit;
+        Exit(False);
       end;
     end;
     if readtrue then
-      dbfread.initStream2Head
+    begin
+      recoun:=dbfread.initStream2Head;
+      Result:=True;
+      if isread then
+      begin
+        for I := 0 to recoun-1 do
+        begin
+          item := dbfread.readRecord(i);
+          id := item[0];
+          fmap.AddOrSetValue(id, item);
+        end;
+        Result:=True;
+      end;
+    end
     else
+    begin
       initfield;
+      Result:=False;
+    end;
   end
   else
   begin
     initfield;
+    Result:=False;
   end;
 end;
+
+procedure TSJSHQ_wr.setmap(mp: TDictionary<string, tarrayex<variant>>);
+var
+  item: TArrayEx<Variant>;
+  idlist: TList<string>;
+  st: string;
+begin
+  idlist := TList<string>.Create(mp.Keys);
+  for st in idlist do
+  begin
+    item := tarrayex<Variant>.Create(['', '', Int64(0), Int64(0), Int64(0), Int64(0),
+                                     Int64(0), Int64(0), Int64(0), Int64(0), Int64(0),
+                                     Int64(0), Int64(0), Int64(0), Int64(0), Int64(0),
+                                     Int64(0), Int64(0), Int64(0), Int64(0), Int64(0),
+                                     Int64(0), Int64(0), Int64(0), Int64(0), Int64(0),
+                                     Int64(0), Int64(0), Int64(0), Int64(0), Int64(0),
+                                     Int64(0),Int64(0),Int64(0),Int64(0)]);
+    item[0]:=st;
+    item [1]:=(mp[st])[1];
+    fmap.AddOrSetValue(st,item);
+  end;
+  idlist.Free;
+end;
+
 
 { TSJSZS_wr }
 
@@ -286,10 +341,14 @@ begin
   ffields.Add(TDBField.Create('ZSCJJE', 'N', 17, 3));
 end;
 
-procedure TSJSZS_wr.init_data;
+function TSJSZS_wr.init_data(isread:Boolean):Boolean;
 var
   dbfread: IDBFRead;
   readtrue: Boolean;
+  recoun:Integer;
+  I: Integer;
+  item:TArrayEx<Variant>;
+  id:string;
 begin
   fFilename := fpath + '\sjszs.dbf';
   if FileExists(ffileName) then
@@ -302,17 +361,34 @@ begin
       on E: Exception do
       begin
         initfield;
-        Exit;
+        Exit(False);
       end;
     end;
     if readtrue then
-      dbfread.initStream2Head
+    begin
+      recoun:=dbfread.initStream2Head;
+      Result:=True;
+      if isread then
+      begin
+        for I := 0 to recoun-1 do
+        begin
+          item := dbfread.readRecord(i);
+          id := item[0];
+          fmap.AddOrSetValue(id, item);
+        end;
+        Result:=True;
+      end;
+    end
     else
+    begin
       initfield;
+      Result:=False;
+    end;
   end
   else
   begin
     initfield;
+    Result:=False;
   end;
 end;
 
@@ -387,10 +463,14 @@ begin
   ffields.Add(TDBField.Create('XXBYBZ','C',1,0));
 end;
 
-procedure TSJSXXN_wr.init_data;
+function TSJSXXN_wr.init_data(isread:Boolean):Boolean;
 var
   dbfread: IDBFRead;
   readtrue: Boolean;
+  recoun:Integer;
+  I: Integer;
+  item:TArrayEx<Variant>;
+  id:string;
 begin
   fFilename := fpath + '\sjsxxn.dbf';
   if FileExists(ffileName) then
@@ -403,17 +483,34 @@ begin
       on E: Exception do
       begin
         initfield;
-        Exit;
+        Exit(False);
       end;
     end;
     if readtrue then
-      dbfread.initStream2Head
+    begin
+      recoun:=dbfread.initStream2Head;
+      Result:=False;
+      if isread then
+      begin
+        for I := 0 to recoun-1 do
+        begin
+          item := dbfread.readRecord(i);
+          id := item[0];
+          fmap.AddOrSetValue(id, item);
+        end;
+        Result:=True;
+      end;
+    end
     else
+    begin
       initfield;
+      Result:=False;
+    end;
   end
   else
   begin
     initfield;
+    Result:=False;
   end;
 end;
 
