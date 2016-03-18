@@ -2,7 +2,7 @@ unit mystock.commands;
 
 interface
 uses
-  mystock.types,mystock.interfaces,system.Classes, Generics.Collections, ArrayEx, System.SysUtils, System.Variants,system.Math;
+  mystock.types,mystock.interfaces,system.Classes, Generics.Collections, ArrayEx, System.SysUtils, System.Variants,system.Math,mystock.singleinf.logger;
 type
 
 { TSZCmd }
@@ -11,7 +11,7 @@ type
   private
     data:TArrayEx<Variant>;
   protected
-
+    flogger:ILogger;
   public
     constructor Create(da:TArrayEx<Variant>);
     destructor Destroy; override;
@@ -119,6 +119,9 @@ var
   id:string;
   I: Integer;
   haskey:Boolean;
+  item:Variant;
+  ui:Int64;
+  f:Double;
 begin
   id := data[0];
   Result := SZNoData;
@@ -159,6 +162,29 @@ begin
           end;
     end;
   end;
+  id:='行情:';
+  for item in data do
+  begin
+    case VarType(item) of
+    varString,varUString:id:=id+item+'|';
+    varInt64,varUInt64:
+                      begin
+                        ui:=item;
+                        id:=id+ui.ToString+'|';
+                      end;
+    varInteger,varWord,varByte:
+                      begin
+                        I:=item;
+                        id:=id+I.ToString+'|';
+                      end;
+    varSingle,varDouble:
+                      begin
+                        f:=item;
+                        id:=id+f.ToString+'|';
+                      end;
+    end;
+  end;
+  flogger.WriteLog(id,2);
 end;
 
 
@@ -176,6 +202,9 @@ var
   reg, reg1: Iwrite;
   id: string;
   I: Integer;
+  item:Variant;
+  ui:Int64;
+  f:Double;
 begin
   id := data[0];
   Result := SZNoData;
@@ -196,6 +225,29 @@ begin
         MonitorExit(reg1.map);
       end;
     end;
+  id:='指数:';
+  for item in data do
+  begin
+    case VarType(item) of
+    varString,varUString:id:=id+item+'|';
+    varInt64,varUInt64:
+                      begin
+                        ui:=item;
+                        id:=id+ui.ToString+'|';
+                      end;
+    varInteger,varWord,varByte:
+                      begin
+                        I:=item;
+                        id:=id+I.ToString+'|';
+                      end;
+    varSingle,varDouble:
+                      begin
+                        f:=item;
+                        id:=id+f.ToString+'|';
+                      end;
+    end;
+  end;
+  flogger.WriteLog(id,2);
 
 end;
 
@@ -214,6 +266,9 @@ var
   reg: Iwrite;
   id: string;
   I: Integer;
+  item:Variant;
+  ui:Int64;
+  f:Double;
 begin
   id := data[0];
   Result := SZNoData;
@@ -239,6 +294,29 @@ begin
       end;
     end;
   end;
+  id:='信息:';
+  for item in data do
+  begin
+    case VarType(item) of
+    varString,varUString:id:=id+item+'|';
+    varInt64,varUInt64:
+                      begin
+                        ui:=item;
+                        id:=id+ui.ToString+'|';
+                      end;
+    varInteger,varWord,varByte:
+                      begin
+                        I:=item;
+                        id:=id+I.ToString+'|';
+                      end;
+    varSingle,varDouble:
+                      begin
+                        f:=item;
+                        id:=id+f.ToString+'|';
+                      end;
+    end;
+  end;
+  flogger.WriteLog(id,2);
 
 end;
 
@@ -263,6 +341,7 @@ constructor TCmd.Create(da: TArrayEx<Variant>);
 begin
   inherited Create;
   data:=da;
+  flogger:=GetLogInterface();
 end;
 
 destructor TCmd.Destroy;
