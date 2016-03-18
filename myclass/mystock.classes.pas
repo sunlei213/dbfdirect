@@ -499,6 +499,7 @@ begin
   FillBytes(t_heat, 12, 0);
   t_heat[3] := 3;
   t_heat[11] := 3;
+  fstatus:=Repair;
   fAC.Socket.CheckForDataOnSource;
   if not fAC.Socket.InputBufferIsEmpty then
   begin
@@ -625,6 +626,7 @@ begin
     tran32.i32:=check(tby,chk);
     chk := fAC.Socket.ReadInt32();
     fdataIStrue:=(tran32.i32=chk);
+    inc(ty_coun);
     Result:=tnocmd.Create;
   end;
   Inc(totle_coun);
@@ -701,6 +703,7 @@ end;
 
 function Trecive_net.start: Boolean;
 begin
+  fstatus:=Repair;
   if (not fAC.Connected) then
     if (fip <> '') and (fport <> 0) then
     begin
@@ -877,6 +880,7 @@ var
   lin, szRecord, agRecord, enRecord: string;
   i:Integer;
 begin
+  fstatus:=FileEnd;
   if frecno < flines.Count then
   begin
     case fType of
@@ -896,13 +900,18 @@ begin
       1:
         result:=tfjycmd.create(convertFJYRecord2Map(lin));
     end;
+    fstatus:=Repair;
   end
   else
   begin
     i:=frecno-flines.count;
-    case i of
+    if fType=1 then
+    begin
+      case i of
       0: result:=tfjycmd.create(tarrayex<Variant>.Create(['888880', '新标准券', '1.0', '0.0', '0', '0.0', '0.0', '0.0', '0.0', '0.0', '0', True, '0', '0.0', '0', '0.0', '0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0']));
       1:result:=tfjycmd.create(tarrayex<Variant>.Create(['799990', '市值股数', '1.0', '0.0', '0', '0.0', '0.0', '0.0', '0.0', '0.0', '0', True, '0', '0.0', '0', '0.0', '0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0', '0.0', '0']));
+      end;
+      fstatus:=Repair;
     end;
   end;
   inc(frecno);
@@ -958,6 +967,7 @@ begin
         flines.LoadFromFile(ffilenames.Values[id]);
         frecno:=0;
         Result:=True;
+        fstatus:=Repair;
       except on e:Exception  do
         Sleep(50);
       end;
