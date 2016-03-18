@@ -31,7 +31,8 @@ requires
   rtl,
   vcl,
   IndyCore,
-  IndySystem;
+  IndySystem,
+  dbrtl;
 
 contains
   ArrayEx in 'ArrayEx.pas',
