@@ -5,7 +5,7 @@ uses
  Windows,Classes, SysUtils,StdCtrls,ComCtrls,ComObj,Messages,Vcl.Dialogs,Vcl.Forms;
 const
   WRITE_LOG_DIR = 'log\'; //记录日志默认目录
-  WRITE_LOG_MIN_LEVEL = 2; //记录日志的最低级别，小于此级别只显示不记录
+  WRITE_LOG_MIN_LEVEL = 1; //记录日志的最低级别，小于此级别只显示不记录
   WRITE_LOG_ADD_TIME = True; //记录日志是否添加时间
   WRITE_LOG_TIME_FORMAT = 'hh:nn:ss.zzz';//记录日志添加时间的格式
   SHOW_LOG_ADD_TIME = True; //日志显示容器是否添加时间
@@ -84,7 +84,7 @@ end;
 { TLogger }
 
 
-constructor TLogger.Create;
+constructor TLogger.Create(path:string);
 begin
   inherited Create;
   InitializeCriticalSection(FCSLock);
@@ -92,7 +92,7 @@ begin
   FwriteFile:=False;
   FLogOpened:=False;
   FAppName := ChangeFileExt(ExtractFileName(ParamStr(0)),'');
-  SetLogDir('');
+  SetLogDir(path);
 end;
 
 destructor TLogger.Destroy;
