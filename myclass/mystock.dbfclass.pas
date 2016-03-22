@@ -446,6 +446,7 @@ var
   re: TDateTime;
   isFu:Boolean;
   bit1:array [0..6] of Integer;
+  df1: TFormatSettings;
 begin
   bit1[0] := 1;
   for I := (low(bit1) + 1) to High(bit1) do
@@ -472,14 +473,16 @@ begin
             starr[1] := starr[1] + '0';
         lo := starr[1].ToInt64;
       end;
-      hi := starr[0].ToInt64;
+      if starr[0].Length >0 then
+        hi := starr[0].ToInt64;
       ub := Hi * int64(lowdec1) + lo;
       if isFu then
         ub := 0 - ub;
       Result := ub;
       exit;
-    end;
-    raise Exception.Create('Field Type Eror for ' + st + '.');
+    end
+    else
+      exit(0);
   end;
   if (self.fField_type = 'C') then
   begin
@@ -498,15 +501,24 @@ begin
       Result := False;
       exit;
     end;
+    if ob.Length=0 then
+      Exit(False);
     raise Exception.Create('Expected a Boolean, got ' + ob );
   end;
   if (self.fField_type = 'D') then
   begin
-    if TryStrToDate(ob,re) then
+    df1.ShortDateFormat := 'yyyy-mm-dd';
+    df1.DateSeparator:='-';
+    if ob.Length<8 then
+      Exit(now);
+    Insert('-', ob, 5);
+    Insert('-', ob, 8);
+    if TryStrToDate(ob,re,df1) then
     begin
       Result := re;
       Exit;
     end;
+
     raise Exception.Create('Expected a Date, got ' + st );
   end;
   raise Exception.Create('Unrecognized JDBFField type: '+ st);
