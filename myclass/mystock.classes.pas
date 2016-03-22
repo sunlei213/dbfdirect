@@ -87,6 +87,7 @@ type
   public
     constructor Create(AClient: TIdTCPClient);
     function getdate(body_ln: UInt32): Boolean; override;
+    function Serial: Idata_CMD; override;
   end;
 
   Tstock_zs = class(Tstock)
@@ -149,7 +150,7 @@ type
 
 implementation
 uses
-  mystock.commands,Data.FmtBcd;
+  mystock.commands,Data.FmtBcd,mystock.singleinf.logger;
 { Tstock_hq }
 
 constructor Tstock_hq.Create(AClient: TIdTCPClient);
@@ -181,35 +182,39 @@ begin
   stock_body.TotalVolumeTrade := NET2CPU(stock_body.TotalVolumeTrade);
   stock_body.TotalValueTrade := NET2CPU(stock_body.TotalValueTrade);
   stock_body.NoMDEntries := NET2CPU(stock_body.NoMDEntries);
-  mden_body.SetLen(stock_body.NoMDEntries);
-  for I := 0 to stock_body.NoMDEntries - 1 do
+  if stock_body.NoMDEntries > 0 then
   begin
-    SetLength(tby, 0);
-    SetLength(tby, hq_size);
-    recvbuff;
-    BytesToRaw(tby, hq_md, hq_size);
-    hq_md.MDEntryPx := NET2CPU(hq_md.MDEntryPx);
-    hq_md.MDEntrySize := NET2CPU(hq_md.MDEntrySize);
-    hq_md.MDPriceLevel := NET2CPU(hq_md.MDPriceLevel);
-    hq_md.NumberOfOrders := NET2CPU(hq_md.NumberOfOrders);
-    hq_md.NoOrders := NET2CPU(hq_md.NoOrders);
+    mden_body.SetLen(stock_body.NoMDEntries);
+    for I := 0 to stock_body.NoMDEntries - 1 do
+    begin
+      SetLength(tby, 0);
+      SetLength(tby, hq_size);
+      recvbuff;
+      BytesToRaw(tby, hq_md, hq_size);
+      hq_md.MDEntryPx := NET2CPU(hq_md.MDEntryPx);
+      hq_md.MDEntrySize := NET2CPU(hq_md.MDEntrySize);
+      hq_md.MDPriceLevel := NET2CPU(hq_md.MDPriceLevel);
+      hq_md.NumberOfOrders := NET2CPU(hq_md.NumberOfOrders);
+      hq_md.NoOrders := NET2CPU(hq_md.NoOrders);
         //hq_md[] := mdenarr[];
          {st:=Format('MDEntrieno=%d,MDEntryType=%s,MDEntryPx=%.6n,MDEntrySize=%d,MDPriceLevel=%d,NumberOfOrders=%d,NoOrders=%d',
                      [+1,trim(hq_md[].MDEntryType),hq_md[].MDEntryPx/1000000.00,hq_md[].MDEntrySize,hq_md[].MDPriceLevel,hq_md[].NumberOfOrders,hq_md[].NoOrders]);
            }
-    if hq_md.NoOrders <> 0 then
-      for m := 0 to hq_md.NoOrders - 1 do
-      begin
-        trans64.i64 := AClient.Socket.ReadInt64;
+      if hq_md.NoOrders > 0 then
+        for m := 0 to hq_md.NoOrders - 1 do
+        begin
+          trans64.i64 := AClient.Socket.ReadInt64;
           //  st:=st+format('笔数%d：%d',[m,trans64.i64]);
-        for k := 7 downto 0 do
-          chk := chk + trans64.by64[k];
-      end;
-    mden_body[i] := hq_md;
+          for k := 7 downto 0 do
+            chk := chk + trans64.by64[k];
+        end;
+      mden_body[i] := hq_md;
+    end;
   end;
   l := AClient.Socket.ReadInt32;
   chk := chk mod 256;
-  if (l = chk) then
+  Result:=(l=chk);
+  if (Result) then
   begin
     data_stream.SetLen(35);
     for I := 2 to 34 do
@@ -219,63 +224,64 @@ begin
     data_stream[5] := stock_body.TotalVolumeTrade div 100;
     data_stream[6] := stock_body.TotalValueTrade div 10;
     data_stream[7] := stock_body.NumTrades;
-    for hq_md in mden_body do
-    begin
-      sl:= Char(hq_md.MDEntryType[0]);
-      case (sl) of
-        '0':
-          if (hq_md.MDEntryType[1] = ' ') then
-          begin
-            data_stream[24 + hq_md.MDPriceLevel] := hq_md.MDEntryPx div 1000;
-            data_stream[25 + hq_md.MDPriceLevel] := hq_md.MDEntrySize div 100;
-          end;
-        '1':
-          if (hq_md.MDEntryType[1] = ' ') then
-          begin
-            data_stream[24 - hq_md.MDPriceLevel] := hq_md.MDEntryPx div 1000;
-            data_stream[25 - hq_md.MDPriceLevel] := hq_md.MDEntrySize div 100;
-          end
-          else
-            data_stream[12]:= hq_md.MDEntryPx div 1000;
-        '2':
-          if (hq_md.MDEntryType[1] = ' ') then
-          begin
-            data_stream[4] := hq_md.MDEntryPx div 1000;
-          end
-          else
-            data_stream[13]:= hq_md.MDEntryPx div 1000;
-        '4':
-          if (hq_md.MDEntryType[1] = ' ') then
-          begin
-            data_stream[3] := hq_md.MDEntryPx div 1000;
-          end;
-        '5':
-          if (hq_md.MDEntryType[1] = 'x') then
-          begin
-            data_stream[10] := hq_md.MDEntryPx div 10000;
-          end;
-        '6':
-          if (hq_md.MDEntryType[1] = 'x') then
-          begin
-            data_stream[11] := hq_md.MDEntryPx div 10000;
-          end;
-        '7':
-          if (hq_md.MDEntryType[1] = ' ') then
-          begin
-            data_stream[8] := hq_md.MDEntryPx div 1000;
-          end;
-        '8':
-          if (hq_md.MDEntryType[1] = ' ') then
-          begin
-            data_stream[9] := hq_md.MDEntryPx div 1000;
-          end;
-        'g':
-          if (hq_md.MDEntryType[1] = 'x') then
-          begin
-            data_stream[13] := hq_md.MDEntrySize div 100;
-          end;
+    if mden_body.Len > 0 then
+      for hq_md in mden_body do
+      begin
+        sl := Char(hq_md.MDEntryType[0]);
+        case (sl) of
+          '0':
+            if (hq_md.MDEntryType[1] = ' ') then
+            begin
+              data_stream[24 + hq_md.MDPriceLevel] := hq_md.MDEntryPx div 1000;
+              data_stream[25 + hq_md.MDPriceLevel] := hq_md.MDEntrySize div 100;
+            end;
+          '1':
+            if (hq_md.MDEntryType[1] = ' ') then
+            begin
+              data_stream[24 - hq_md.MDPriceLevel] := hq_md.MDEntryPx div 1000;
+              data_stream[25 - hq_md.MDPriceLevel] := hq_md.MDEntrySize div 100;
+            end
+            else
+              data_stream[12] := hq_md.MDEntryPx div 1000;
+          '2':
+            if (hq_md.MDEntryType[1] = ' ') then
+            begin
+              data_stream[4] := hq_md.MDEntryPx div 1000;
+            end
+            else
+              data_stream[13] := hq_md.MDEntryPx div 1000;
+          '4':
+            if (hq_md.MDEntryType[1] = ' ') then
+            begin
+              data_stream[3] := hq_md.MDEntryPx div 1000;
+            end;
+          '5':
+            if (hq_md.MDEntryType[1] = 'x') then
+            begin
+              data_stream[10] := hq_md.MDEntryPx div 10000;
+            end;
+          '6':
+            if (hq_md.MDEntryType[1] = 'x') then
+            begin
+              data_stream[11] := hq_md.MDEntryPx div 10000;
+            end;
+          '7':
+            if (hq_md.MDEntryType[1] = ' ') then
+            begin
+              data_stream[8] := hq_md.MDEntryPx div 1000;
+            end;
+          '8':
+            if (hq_md.MDEntryType[1] = ' ') then
+            begin
+              data_stream[9] := hq_md.MDEntryPx div 1000;
+            end;
+          'g':
+            if (hq_md.MDEntryType[1] = 'x') then
+            begin
+              data_stream[13] := hq_md.MDEntrySize div 100;
+            end;
+        end;
       end;
-    end;
   end;
 end;
 
@@ -283,6 +289,14 @@ end;
 
 
 
+
+function Tstock_hq.Serial: Idata_CMD;
+var
+ flogger:ILogger;
+begin
+  flogger:=GetLogInterface;
+  Result:=TSZHQCmd.Create(data_stream);
+end;
 
 { Tstock_zs }
 
@@ -311,19 +325,20 @@ begin
   stock_body.TotalVolumeTrade := NET2CPU(stock_body.TotalVolumeTrade);
   stock_body.TotalValueTrade := NET2CPU(stock_body.TotalValueTrade);
   stock_body.NoMDEntries := NET2CPU(stock_body.NoMDEntries);
-  for I := 0 to stock_body.NoMDEntries - 1 do
-  begin
-    SetLength(tby, 0);
-    SetLength(tby, hq_size);
-    recvbuff;
-    BytesToRaw(tby, hq, hq_size);
-    hq.MDEntryPx := NET2CPU(hq.MDEntryPx);
+  if stock_body.NoMDEntries > 0 then
+    for I := 0 to stock_body.NoMDEntries - 1 do
+    begin
+      SetLength(tby, 0);
+      SetLength(tby, hq_size);
+      recvbuff;
+      BytesToRaw(tby, hq, hq_size);
+      hq.MDEntryPx := NET2CPU(hq.MDEntryPx);
 
       //hq := mdenarr[i];
        {st:=Format('MDEntrieno=%d,MDEntryType=%s,MDEntryPx=%.6n,MDEntrySize=%d,MDPriceLevel=%d,NumberOfOrders=%d,NoOrders=%d',
                    [i+1,trim(hq.MDEntryType),hq.MDEntryPx/1000000.00,hq.MDEntrySize,hq.MDPriceLevel,hq.NumberOfOrders,hq.NoOrders]);
          }
-  end;
+    end;
   l := AClient.Socket.ReadInt32;
   chk := chk mod 256;
   Result := (l = chk);
@@ -333,7 +348,7 @@ end;
 
 constructor Tstock_zsvol.Create(AClient: TIdTCPClient);
 begin
-  inherited Create(AClient, 309011);
+  inherited Create(AClient, 309111);
   data_size := SizeOf(stock_data);
 end;
 
@@ -365,7 +380,7 @@ end;
 constructor TStockStatus.Create(AClient: TIdTCPClient);
 begin
   inherited Create(AClient, 390013);
-  data_size := SizeOf(stock_data);
+  data_size := SizeOf(StockStatus);
 end;
 
 function TStockStatus.getdate(body_ln: UInt32): Boolean;
@@ -383,13 +398,14 @@ begin
   stock_body.OrigTime := NET2CPU(stock_body.OrigTime);
   stock_body.ChannelNo := NET2CPU(stock_body.ChannelNo);
   stock_body.NoSwitch := NET2CPU(stock_body.NoSwitch);
-  for I := 0 to stock_body.NoSwitch - 1 do
-  begin
-    trans16.i16 := AClient.Socket.ReadInt16();
-    chk := chk + trans16.by16[1] + trans16.by16[0];
-    trans16.i16 := AClient.Socket.ReadInt16();
-    chk := chk + trans16.by16[1] + trans16.by16[0];
-  end;
+  if stock_body.NoSwitch > 0 then
+    for I := 0 to stock_body.NoSwitch - 1 do
+    begin
+      trans16.i16 := AClient.Socket.ReadInt16();
+      chk := chk + trans16.by16[1] + trans16.by16[0];
+      trans16.i16 := AClient.Socket.ReadInt16();
+      chk := chk + trans16.by16[1] + trans16.by16[0];
+    end;
   l := AClient.Socket.ReadInt32;
   chk := chk mod 256;
   Result := (l = chk);
@@ -470,7 +486,7 @@ begin
   fAC:=TIdTCPClient.Create(nil);
   islogin:=False;
   isnodata:=True;
-  fdataIStrue:=False;
+  fdataIStrue:=True;
   ftype_coun:=TDictionary<Integer,Integer>.Create;
   fvisiters:=TList<Ivisiter>.Create;
 end;
@@ -494,7 +510,9 @@ var
   t_heat: TIdBytes;
   endtime:Integer;
   tmp:Ivisiter;
+  flog:ILogger;
 begin
+  flog:=GetLogInterface();
   SetLength(t_heat, 12);
   FillBytes(t_heat, 12, 0);
   t_heat[3] := 3;
@@ -521,9 +539,9 @@ begin
     fdataIStrue:=True;
   end;
   endtime := TThread.GetTickCount;
-  if isnodata and ((endtime - sev_heart) > (heart * 2)) then
+  if isnodata and ((endtime - sev_heart) > (heart * 2000)) then
     fdataIStrue := False;
-  if ((endtime - cli_heart) > heart) then
+  if ((endtime - cli_heart) > heart*1000) then
   begin
     cli_heart := TThread.GetTickCount;
     fAC.Socket.WriteDirect(t_heat);
@@ -537,7 +555,9 @@ begin
   else if isnodata then
     fstatus := NoData
   else
+    begin
     fstatus := HasData;
+    end;
 
 end;
 
@@ -551,7 +571,9 @@ var
   data_make:Idata_make;
   tran32:uin32;
   ty_coun,totle_coun:Integer;
+  flog:ILogger;
 begin
+  flog:=GetLogInterface();
   msg_type := fAC.Socket.ReadInt32();
   body_ln := fAC.Socket.ReadInt32();
   fdataIStrue := False;
@@ -572,6 +594,7 @@ begin
                                       [msg_type,body_ln,trim(lg_body.SenderCompID),trim(lg_body.TargetCompID),NET2CPU(lg_body.HeartBtInt),trim(lg_body.Password),trim(lg_body.DefaultApplVerID)]));
          }
         inc(ty_coun);
+        if not dataIStrue then flog.WriteLog('登录不正确',2);
       end;
     3: //心跳
       begin
@@ -579,11 +602,13 @@ begin
         fdataIStrue:=(chk = 3);
         Result:=tnocmd.Create;
         inc(ty_coun);
+        if not dataIStrue then flog.WriteLog('心跳不正确',2);
       end;
     300192: //逐笔委托行情
       begin
         fdataIStrue := readbuff<wt_l2>(l2_wt, msg_type, body_ln);
         inc(ty_coun);
+        if not dataIStrue then flog.WriteLog('逐笔委托不正确',2);
            {if fdataIStrue then
            MYform.mmo1.Lines.Add(Format('msg_type=%d,body_ln=%d,ChannelNo=%d,ApplSeqNum=%d,MDStreamID=%s,SecurityID=%s,SecurityIDSource=%s,Price=%.4n,OrderQty=%d,Side=%s,TransactTime=%d,OrdType=%s',
                                       [msg_type,body_ln,NET2CPU(l2_wt.ChannelNo),NET2CPU(l2_wt.ApplSeqNum),trim(l2_wt.MDStreamID),trim(l2_wt.SecurityID),trim(l2_wt.SecurityIDSource),(NET2CPU(l2_wt.Price)/10000.00),NET2CPU(l2_wt.OrderQty),l2_wt.Side,NET2CPU(l2_wt.TransactTime),l2_wt.OrdType]));
@@ -594,26 +619,34 @@ begin
       begin
         data_make:=Tstock_hq.Create(fAC);
         fdataIStrue:=data_make.getdate(body_ln);
+        Result:=data_make.Serial;
         inc(ty_coun);
+        if not dataIStrue then flog.WriteLog('行情快照不正确',2);
       end;
     309011:  //指数行情
       begin
         data_make:=Tstock_zs.Create(fAC);
         fdataIStrue:=data_make.getdate(body_ln);
+        Result:=tnocmd.Create;
         inc(ty_coun);
+        if not dataIStrue then flog.WriteLog('指数行情不正确',2);
       end;
     309111: //成交量统计指标行情
       begin
         data_make:=Tstock_zsvol.Create(fAC);
         fdataIStrue:=data_make.getdate(body_ln);
+        Result:=tnocmd.Create;
         //fdataIStrue:=get_stock_hq(fAC, msg_type, body_ln);
         inc(ty_coun);
+        if not dataIStrue then flog.WriteLog('成交量统计不正确',2);
       end;
     390013: //证券实时状态
       begin
         data_make:=TStockStatus.Create(fAC);
         fdataIStrue:=data_make.getdate(body_ln);
+        Result:=tnocmd.Create;
         inc(ty_coun);
+        if not dataIStrue then flog.WriteLog('证券实时状态不正确',2);
       end;
 
   else
@@ -628,6 +661,7 @@ begin
     fdataIStrue:=(tran32.i32=chk);
     inc(ty_coun);
     Result:=tnocmd.Create;
+    if not dataIStrue then flog.WriteLog(msg_type.ToString+'不正确',2);
   end;
   Inc(totle_coun);
   ftype_coun.AddOrSetValue(999999,totle_coun);
