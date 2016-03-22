@@ -11,7 +11,7 @@ type
   private
     data:TArrayEx<Variant>;
   protected
-    flogger:ILogger;
+
   public
     constructor Create(da:TArrayEx<Variant>);
     destructor Destroy; override;
@@ -32,7 +32,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;
+    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
 
   end;
 { TSZZSCmd }
@@ -44,7 +44,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;
+    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
 
   end;
 { TSZXXCmd }
@@ -56,7 +56,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;
+    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
 
   end;
 { TShowCmd }
@@ -68,7 +68,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;
+    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
   end;
 
 { TfastwCmd }
@@ -80,7 +80,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;
+    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
   end;
 
   { TfjywCmd }
@@ -92,7 +92,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;
+    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
   end;
 
 implementation
@@ -122,26 +122,28 @@ var
   item:Variant;
   ui:Int64;
   f:Double;
+  flogger:ILogger;
 begin
+  flogger:=GetLogInterface;
   id := data[0];
   Result := SZNoData;
   for reg in regs do
   begin
     if (reg.w_type = SJSXXN) then
     begin
-      MonitorEnter(reg.map);
+      reg.MyLock.Enter;
       try
         haskey := reg.map.ContainsKey(id);
         if haskey then
           data[1] := (reg.map[id])[1];
       finally
-        MonitorExit(reg.map);
+        reg.MyLock.Leave;
       end;
       if haskey then
         for reg1 in regs do
           if (reg1.w_type = SJSHQ) then
           begin
-            MonitorExit(reg1.map);
+            reg1.MyLock.Enter;
             try
               if (reg1.map.ContainsKey(id)) then
               begin
@@ -155,7 +157,7 @@ begin
                 Result := SZup;
               end;
             finally
-              MonitorExit(reg1.map);
+              reg1.MyLock.Leave;
 
             end;
 
@@ -205,13 +207,15 @@ var
   item:Variant;
   ui:Int64;
   f:Double;
+  flogger:ILogger;
 begin
+  flogger:=GetLogInterface;
   id := data[0];
   Result := SZNoData;
   for reg1 in regs do
     if (reg1.w_type = SJSZS) then
     begin
-      MonitorEnter(reg1.map);
+      reg1.MyLock.Enter;
       try
         if (reg1.map.ContainsKey(id)) then
         begin
@@ -222,7 +226,7 @@ begin
         end;
 
       finally
-        MonitorExit(reg1.map);
+        reg1.MyLock.Leave;
       end;
     end;
   id:='Ö¸Êý:';
@@ -269,14 +273,16 @@ var
   item:Variant;
   ui:Int64;
   f:Double;
+  flogger:ILogger;
 begin
+  flogger:=GetLogInterface;
   id := data[0];
   Result := SZNoData;
   for reg in regs do
   begin
     if (reg.w_type = SJSXXN) then
     begin
-      MonitorEnter(reg.map);
+      reg.MyLock.Enter;
       try
         if (reg.map.ContainsKey(id)) then
         begin
@@ -290,7 +296,7 @@ begin
         Result := SZup;
 
       finally
-        MonitorExit(reg.map);
+        reg.MyLock.Leave;
       end;
     end;
   end;
@@ -341,7 +347,6 @@ constructor TCmd.Create(da: TArrayEx<Variant>);
 begin
   inherited Create;
   data:=da;
-  flogger:=GetLogInterface();
 end;
 
 destructor TCmd.Destroy;
