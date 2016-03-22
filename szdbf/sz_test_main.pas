@@ -44,9 +44,10 @@ var
   tm:TMemoryStream;
 implementation
 uses
-  sz_interface;
+  sz_interface,mystock.singleinf.logger;
 {$R *.dfm}
-
+var
+  logger:ILogger;
 { TMyThread }
 
 procedure TMyThread.Execute;
@@ -75,8 +76,8 @@ begin
     lg.l_head.MsgType := NET2CPU(msg_type);
     lg.l_head.BodyLength := NET2CPU(body_ln);
     strtospace('resend', Length(lg.SenderCompID), lg.SenderCompID);
-    strtospace('mdgw11', Length(lg.TargetCompID), lg.TargetCompID);
-    strtospace('mdgw11', Length(lg.Password), lg.Password);
+    strtospace('at002', Length(lg.TargetCompID), lg.TargetCompID);
+    strtospace('at002', Length(lg.Password), lg.Password);
     lg.HeartBtInt := NET2CPU(l);
     strtospace('1.00', Length(lg.DefaultApplVerID), lg.DefaultApplVerID);
     tby:=RawToBytes(lg,SizeOf(lg));
@@ -107,8 +108,8 @@ begin
 
             dateIStrue:=make_data(MYform.idtcpclnt1);
             l := l + 1;
-            if not dateIStrue then
-              MYform.mmo1.Lines.Add('数据不正确');
+            {if not dateIStrue then
+              MYform.mmo1.Lines.Add('数据不正确');}
           end
           else
           begin
@@ -119,7 +120,7 @@ begin
               tim.Stop;
               j:=tim.ElapsedMilliseconds;
               tim.Reset;
-              MYform.mmo1.Lines.Add(Format('%d:buffer空了,耗时%d毫秒', [l, j]));
+              //MYform.mmo1.Lines.Add(Format('%d:buffer空了,耗时%d毫秒', [l, j]));
             end;
             sleep(10);
             Application.ProcessMessages;
@@ -186,13 +187,14 @@ begin
          MYform.mmo1.Lines.Add(Format('msg_type=%d,body_ln=%d,SenderCompID=%s,TargetCompID=%s,HeartBtInt=%d,Password=%s,DefaultApplVerID=%s',
                                       [msg_type,body_ln,trim(lg_body.SenderCompID),trim(lg_body.TargetCompID),NET2CPU(lg_body.HeartBtInt),trim(lg_body.Password),trim(lg_body.DefaultApplVerID)]));
          }
+         if not dataIStrue then logger.WriteLog('登录不正确',2);
+
       end;
     3: //心跳
       begin
         chk := MYform.idtcpclnt1.Socket.ReadInt32();
         dataIStrue:=(chk = 3);
-        if dataIStrue then
-          MYform.mmo1.Lines.Add('收到心跳');
+         if not dataIStrue then logger.WriteLog('心跳不正确',2);
       end;
     300192: //逐笔委托行情
       begin
@@ -201,28 +203,33 @@ begin
            MYform.mmo1.Lines.Add(Format('msg_type=%d,body_ln=%d,ChannelNo=%d,ApplSeqNum=%d,MDStreamID=%s,SecurityID=%s,SecurityIDSource=%s,Price=%.4n,OrderQty=%d,Side=%s,TransactTime=%d,OrdType=%s',
                                       [msg_type,body_ln,NET2CPU(l2_wt.ChannelNo),NET2CPU(l2_wt.ApplSeqNum),trim(l2_wt.MDStreamID),trim(l2_wt.SecurityID),trim(l2_wt.SecurityIDSource),(NET2CPU(l2_wt.Price)/10000.00),NET2CPU(l2_wt.OrderQty),l2_wt.Side,NET2CPU(l2_wt.TransactTime),l2_wt.OrdType]));
             }
+         if not dataIStrue then logger.WriteLog('逐笔委托不正确',2);
       end;
 //    300111,309011,309111:dataIStrue:=get_stock_hq(AClient, msg_type, body_ln);
     300111:
       begin
         data_make:=Tstock_hq.Create(AClient);
         dataIStrue:=data_make.getdate(body_ln);
+        if not dataIStrue then logger.WriteLog('行情快照,不正确',2);
       end;
     309011:
       begin
         data_make:=Tstock_zs.Create(AClient);
         dataIStrue:=data_make.getdate(body_ln);
+        if not dataIStrue then logger.WriteLog('指数行情不正确',2);
       end;
     309111: //行情快照,指数行情,成交量统计指标行情
       begin
         data_make:=Tstock_zsvol.Create(AClient);
         dataIStrue:=data_make.getdate(body_ln);
+        if not dataIStrue then logger.WriteLog('成交量统计不正确',2);
         //dataIStrue:=get_stock_hq(AClient, msg_type, body_ln);
       end;
     390013: //证券实时状态
       begin
         data_make:=TStockStatus.Create(AClient);
         dataIStrue:=data_make.getdate(body_ln);
+        if not dataIStrue then logger.WriteLog('证券实时状态不正确',2);
       end;
 
   else
@@ -240,6 +247,7 @@ begin
     dataIStrue:=(tran32.i32=chk);
     tm.Write(TBy[0], length(tby));
     tm.Write(chk, SizeOf(chk));
+    if not dataIStrue then logger.WriteLog(msg_type.ToString+'证券实时状态不正确',2);
 
   end;
 
@@ -334,7 +342,8 @@ end;
 procedure TMYform.FormCreate(Sender: TObject);
 begin
  tm:=TMemoryStream.Create;
-
+ logger:=GetLogInterface;
+ logger.LogShower:=Self.mmo1
 end;
 
 end.
