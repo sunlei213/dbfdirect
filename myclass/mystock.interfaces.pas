@@ -3,7 +3,7 @@ unit mystock.interfaces;
 interface
 uses
   Generics.Collections, ArrayEx, System.SysUtils, System.Variants, System.Classes,system.Math,
-  mystock.types,IdGlobal, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient;
+  mystock.types,IdGlobal, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient,SyncObjs;
 
 type
   Ivisiter=interface
@@ -20,8 +20,10 @@ type
     procedure write;
     function getmap:TDictionary<string,tarrayex<variant>>;
     function gettype:Dbf_Type;
+    function getlock:TCriticalSection;
     property map:TDictionary<string,tarrayex<variant>> read getmap;
     property w_type:Dbf_Type read gettype;
+    property MyLock:TCriticalSection read getlock;
   end;
 
   Idata_CMD= interface
