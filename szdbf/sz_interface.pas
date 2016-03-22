@@ -257,7 +257,7 @@ end;
 
 constructor Tstock_zsvol.Create(AClient: TIdTCPClient);
 begin
-  inherited Create(AClient, 309011);
+  inherited Create(AClient, 309111);
   data_size := SizeOf(stock_data);
 end;
 
