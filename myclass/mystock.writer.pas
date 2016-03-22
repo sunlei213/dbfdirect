@@ -2,7 +2,7 @@ unit mystock.writer;
 
 interface
 uses
-  mystock.types,mystock.interfaces,mystock.dbfclass,Generics.Collections, ArrayEx, System.SysUtils, System.Variants, System.Classes,system.Math;
+  mystock.types,mystock.interfaces,mystock.dbfclass,Generics.Collections, ArrayEx, System.SysUtils, System.Variants, System.Classes,system.Math,SyncObjs;
 type
 { TMy_Writer }
 
@@ -16,6 +16,7 @@ type
     fstart:Integer;
     ffields:TList<IDBField>;
     fup_coun:Integer;
+    flock:TCriticalSection;
     function getfreg:Integer;
     procedure setfreg(sec:Integer);
     procedure writedbf;virtual;
@@ -28,10 +29,12 @@ type
     procedure update;
     procedure write;
     function getmap:TDictionary<string,tarrayex<variant>>;
+    function getlock:TCriticalSection;
     function gettype:Dbf_Type;
     property map:TDictionary<string,tarrayex<variant>> read getmap;
     property w_type:Dbf_Type read gettype;
     property freg:Integer read getfreg write setfreg;
+    property MyLock:TCriticalSection read getlock;
   end;
 
   TSJSHQ_wr=class(TMy_Writer)
@@ -79,6 +82,7 @@ begin
   fstart:=0;
   fup_coun:=0;
   ffields:=TList<IDBField>.Create;
+  flock:=TCriticalSection.Create;
 end;
 
 destructor TMy_Writer.Destroy;
@@ -87,12 +91,19 @@ begin
     FreeAndNil(fmap);
   if Assigned(ffields) then
     FreeAndNil(ffields);
+  if Assigned(flock) then
+    FreeAndNil(flock);
   inherited;
 end;
 
 function TMy_Writer.getfreg: Integer;
 begin
    Result:=ffreg div 1000;
+end;
+
+function TMy_Writer.getlock: TCriticalSection;
+begin
+  Result:=flock;
 end;
 
 function TMy_Writer.getmap: TDictionary<string, tarrayex<variant>>;
@@ -123,7 +134,9 @@ end;
 procedure TMy_Writer.write;
 var
   time_now:Integer;
+  flogger:ILogger;
 begin
+  flogger:=GetLogInterface;
   if (fstart=0) then
   begin
     fstart:=TThread.GetTickCount;
