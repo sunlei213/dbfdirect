@@ -167,7 +167,7 @@ begin
   try
     begin
       stl.Sort;
-      MonitorEnter(fmap);
+      flock.Enter;
       try
         for st1 in stl do
         begin
@@ -176,7 +176,7 @@ begin
           write1.addRecord(delflag, obj1);
         end;
       finally
-        MonitorExit(fmap);
+        flock.Leave;
       end;
       try
         write1.wirteStream2File(Self.fFilename);
