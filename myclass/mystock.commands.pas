@@ -15,12 +15,12 @@ type
   public
     constructor Create(da:TArrayEx<Variant>);
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;virtual;abstract;
+    function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;virtual;abstract;
   end;
 
   TNoCmd=class(TInterfacedObject, Idata_CMD)
   public
-    function run_command(regs:TList<Iwrite>):Enum_CMD;
+    function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;
   end;
 
 { TSZHQCmd }
@@ -32,7 +32,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
+    function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;override;
 
   end;
 { TSZZSCmd }
@@ -44,7 +44,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
+    function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;override;
 
   end;
 { TSZXXCmd }
@@ -56,7 +56,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
+    function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;override;
 
   end;
 { TShowCmd }
@@ -68,7 +68,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
+    function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;override;
   end;
 
 { TfastwCmd }
@@ -80,7 +80,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
+    function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;override;
   end;
 
   { TfjywCmd }
@@ -92,7 +92,7 @@ type
 
   public
     destructor Destroy; override;
-    function run_command(regs:TList<Iwrite>):Enum_CMD;override;
+    function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;override;
   end;
 
 implementation
@@ -100,7 +100,7 @@ implementation
 
 { TNoCmd }
 
-function TNoCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+function TNoCmd.run_command(regs: TList<Iwrite>;debug:Boolean=False): Enum_CMD;
 begin
   Result:=SZNoData;
 end;
@@ -113,7 +113,7 @@ begin
   inherited;
 end;
 
-function TSZHQCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+function TSZHQCmd.run_command(regs: TList<Iwrite>;debug:Boolean=False): Enum_CMD;
 var
   reg,reg1:Iwrite;
   id:string;
@@ -186,7 +186,8 @@ begin
                       end;
     end;
   end;
-  flogger.WriteLog(id,2);
+  if debug then
+    flogger.WriteLog(id,2);
 end;
 
 
@@ -199,7 +200,7 @@ begin
   inherited;
 end;
 
-function TSZZSCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+function TSZZSCmd.run_command(regs: TList<Iwrite>;debug:Boolean=False): Enum_CMD;
 var
   reg, reg1: Iwrite;
   id: string;
@@ -251,7 +252,8 @@ begin
                       end;
     end;
   end;
-  flogger.WriteLog(id,2);
+  if debug then
+    flogger.WriteLog(id,2);
 
 end;
 
@@ -265,7 +267,7 @@ begin
   inherited;
 end;
 
-function TSZXXCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+function TSZXXCmd.run_command(regs: TList<Iwrite>;debug:Boolean=False): Enum_CMD;
 var
   reg: Iwrite;
   id: string;
@@ -322,7 +324,8 @@ begin
                       end;
     end;
   end;
-  flogger.WriteLog(id,2);
+  if debug then
+    flogger.WriteLog(id,2);
 
 end;
 
@@ -336,7 +339,7 @@ begin
   inherited;
 end;
 
-function TShowCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+function TShowCmd.run_command(regs: TList<Iwrite>;debug:Boolean=False): Enum_CMD;
 begin
 
 end;
@@ -363,7 +366,7 @@ begin
   inherited;
 end;
 
-function TfastCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+function TfastCmd.run_command(regs: TList<Iwrite>;debug:Boolean=False): Enum_CMD;
 begin
 
 end;
@@ -376,7 +379,7 @@ begin
   inherited;
 end;
 
-function TfjyCmd.run_command(regs: TList<Iwrite>): Enum_CMD;
+function TfjyCmd.run_command(regs: TList<Iwrite>;debug:Boolean=False): Enum_CMD;
 begin
 
 end;
