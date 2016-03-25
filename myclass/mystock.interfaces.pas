@@ -27,7 +27,7 @@ type
   end;
 
   Idata_CMD= interface
-    function run_command(regs:TList<Iwrite>):Enum_CMD;
+    function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;
   end;
 
   Idata_recive=interface
