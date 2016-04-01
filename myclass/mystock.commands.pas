@@ -9,11 +9,12 @@ type
 
   TCmd = class(TInterfacedObject, Idata_CMD)
   private
+    ftime:UInt64;
     data:TArrayEx<Variant>;
   protected
 
   public
-    constructor Create(da:TArrayEx<Variant>);
+    constructor Create(OrigTime:UInt64;da:TArrayEx<Variant>);
     destructor Destroy; override;
     function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;virtual;abstract;
   end;
@@ -67,6 +68,7 @@ type
   protected
 
   public
+    constructor Create(da:TArrayEx<Variant>);
     destructor Destroy; override;
     function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;override;
   end;
@@ -79,6 +81,7 @@ type
   protected
 
   public
+    constructor Create(da:TArrayEx<Variant>);
     destructor Destroy; override;
     function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;override;
   end;
@@ -91,6 +94,7 @@ type
   protected
 
   public
+    constructor Create(da:TArrayEx<Variant>);
     destructor Destroy; override;
     function run_command(regs:TList<Iwrite>;debug:Boolean=False):Enum_CMD;override;
   end;
@@ -123,10 +127,12 @@ var
   ui:Int64;
   f:Double;
   flogger:ILogger;
+  tim:UInt64;
 begin
   flogger:=GetLogInterface;
   id := data[0];
   Result := SZNoData;
+  haskey:=False;
   for reg in regs do
   begin
     if (reg.w_type = SJSXXN) then
@@ -165,6 +171,8 @@ begin
     end;
   end;
   id:='ÐÐÇé:';
+  tim:=(ftime mod 1000000000) div 1000;
+  id:=id + tim.ToString;
   for item in data do
   begin
     case VarType(item) of
@@ -186,7 +194,7 @@ begin
                       end;
     end;
   end;
-  if debug then
+  if debug and (tim>93000)then
     flogger.WriteLog(id,2);
 end;
 
@@ -333,6 +341,11 @@ end;
 { TShowCmd }
 
 
+constructor TShowCmd.Create(da: TArrayEx<Variant>);
+begin
+  data:=da;
+end;
+
 destructor TShowCmd.Destroy;
 begin
 
@@ -346,9 +359,10 @@ end;
 
 { TCmd }
 
-constructor TCmd.Create(da: TArrayEx<Variant>);
+constructor TCmd.Create(OrigTime:UInt64;da: TArrayEx<Variant>);
 begin
   inherited Create;
+  ftime:=OrigTime;
   data:=da;
 end;
 
@@ -359,6 +373,11 @@ begin
 end;
 
 { TfastCmd }
+
+constructor TfastCmd.Create(da: TArrayEx<Variant>);
+begin
+  data:=da;
+end;
 
 destructor TfastCmd.Destroy;
 begin
@@ -372,6 +391,11 @@ begin
 end;
 
 { TfjyCmd }
+
+constructor TfjyCmd.Create(da: TArrayEx<Variant>);
+begin
+  data:=da;
+end;
 
 destructor TfjyCmd.Destroy;
 begin
