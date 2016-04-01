@@ -295,7 +295,7 @@ var
  flogger:ILogger;
 begin
   flogger:=GetLogInterface;
-  Result:=TSZHQCmd.Create(data_stream);
+  Result:=TSZHQCmd.Create(stock_body.OrigTime,data_stream);
 end;
 
 { Tstock_zs }
