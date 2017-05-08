@@ -699,13 +699,15 @@ end;
 function TaskRunThread.wirteFJY2Show: Boolean;
 var
   flines: TStringList;
+  Stream: TStream;
   lin: string;
 begin
   flines := TStringList.Create;
   Result := False;
+  Stream := TFileStream.Create(Self.entry.fjy,fmOpenRead or fmShareDenyNone);
   try
     try
-      flines.LoadFromFile(Self.entry.fjy);
+      flines.LoadFromStream(Stream);
     except
       on E: Exception do
       begin
@@ -730,6 +732,7 @@ begin
       end;
     end;
   finally
+    Stream.Free;
     flines.Free;
   end;
 end;
@@ -737,6 +740,7 @@ end;
 function TaskRunThread.wirteMktdt2Show: Boolean;
 var
   flines: TStringList;
+  Stream: TStream;
   lin, firstrec: string;
   szRecord, agRecord, enRecord: TStringList;
   i: Integer;
@@ -746,11 +750,12 @@ begin
   enRecord := TStringList.Create;
   szRecord := TStringList.Create;
   agRecord := TStringList.Create;
+  Stream := TFileStream.Create(Self.entry.fast,fmOpenRead or fmShareDenyNone);
   Result := False;
   try
     begin
       try
-        flines.LoadFromFile(Self.entry.fast);
+        flines.LoadFromStream(Stream);
       except
         on E: Exception do
         begin
@@ -801,6 +806,7 @@ begin
   finally
     begin
       flines.Free;
+      Stream.Free;
       szRecord.Free;
       agRecord.Free;
       enRecord.Free;
